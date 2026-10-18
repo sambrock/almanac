@@ -3,7 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 // A journal date is a calendar day in the user's local time zone, as
 // `YYYY-MM-DD`. Each date has at most one entry.
 
-export type JournalEntrySummary = { date: string; preview: string };
+export type JournalEntrySummary = { id: string; date: string; preview: string };
 
 export const journalEntriesQueryOptions = queryOptions({
   queryKey: ["journal", "entries"],

@@ -1,9 +1,11 @@
 import { Context, Schema } from "effect";
 import { HttpApiMiddleware } from "effect/http-api";
 
-import type { User } from "../users/User.ts";
+import type { SessionUser } from "./sessionUser.ts";
 
-export class CurrentUser extends Context.Service<CurrentUser, User>()("almanac/CurrentUser") {}
+export class CurrentUser extends Context.Service<CurrentUser, SessionUser>()(
+  "almanac/CurrentUser",
+) {}
 
 export class Unauthorized extends Schema.TaggedError<Unauthorized>()(
   "Unauthorized",

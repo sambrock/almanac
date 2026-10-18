@@ -1,6 +1,7 @@
+import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "cn";
 
 import { JournalEditor } from "#/components/journal/JournalEditor";
 import { Button } from "#/components/ui/button";
@@ -13,7 +14,6 @@ import {
   today,
 } from "#/lib/journal";
 import { meQueryOptions } from "#/lib/me";
-import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/journal/$date")({ component: JournalPage });
 
@@ -57,20 +57,31 @@ function Header({ date, email }: { date: string; email: string }) {
 
   return (
     <header className="flex items-center gap-2">
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/journal/$date" params={{ date: addDays(date, -1) }} aria-label="Previous day">
-          <ChevronLeft />
-        </Link>
+      <Button
+        variant="ghost"
+        size="icon"
+        nativeButton={false}
+        render={<Link to="/journal/$date" params={{ date: addDays(date, -1) }} />}
+        aria-label="Previous day"
+      >
+        <RiArrowLeftSLine />
       </Button>
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/journal/$date" params={{ date: addDays(date, 1) }} aria-label="Next day">
-          <ChevronRight />
-        </Link>
+      <Button
+        variant="ghost"
+        size="icon"
+        nativeButton={false}
+        render={<Link to="/journal/$date" params={{ date: addDays(date, 1) }} />}
+        aria-label="Next day"
+      >
+        <RiArrowRightSLine />
       </Button>
-      <Button variant="outline" size="sm" asChild>
-        <Link to="/journal/$date" params={{ date: today() }}>
-          Today
-        </Link>
+      <Button
+        variant="outline"
+        size="sm"
+        nativeButton={false}
+        render={<Link to="/journal/$date" params={{ date: today() }} />}
+      >
+        Today
       </Button>
       <span className="text-muted-foreground ml-auto truncate text-sm">{email}</span>
       <Button
@@ -101,7 +112,7 @@ function EntryList({ activeDate }: { activeDate: string }) {
           to="/journal/$date"
           params={{ date: entry.date }}
           className={cn(
-            "hover:bg-accent rounded-md px-3 py-2 text-inherit no-underline",
+            "hover:bg-accent rounded-md px-3 py-2",
             entry.date === activeDate && "bg-accent",
           )}
         >

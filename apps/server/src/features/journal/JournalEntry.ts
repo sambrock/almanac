@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { JournalEntryPublicId } from "../../domain/ids.ts";
+
 // A calendar day in the user's own time zone, as `YYYY-MM-DD`. Each day has
 // at most one journal entry.
 export const JournalDate = Schema.String.check(
@@ -16,6 +18,7 @@ export const JournalDate = Schema.String.check(
 export type JournalDate = typeof JournalDate.Type;
 
 export class JournalEntrySummary extends Schema.Class<JournalEntrySummary>("JournalEntrySummary")({
+  id: JournalEntryPublicId,
   date: JournalDate,
   preview: Schema.String,
 }) {}

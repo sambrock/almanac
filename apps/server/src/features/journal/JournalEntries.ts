@@ -1,8 +1,9 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { nanoid } from "nanoid";
 import * as Y from "yjs";
 
-import type { UserId } from "../../domain/ids.ts";
+import { UserId } from "../../domain/ids.ts";
 import { type JournalDate, JournalEntrySummary } from "./JournalEntry.ts";
 
 // The entry body lives in this Y.Text. Every client must use the same name.
@@ -28,10 +29,10 @@ export class JournalEntries extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
 
       const findSummaries = SqlSchema.findAll({
-        Request: Schema.String,
+        Request: UserId,
         Result: JournalEntrySummary,
         execute: (userId) => sql`
-          select "date"::text as "date", left("text", 280) as "preview"
+          select "public_id" as "id", "date"::text as "date", left("text", 280) as "preview"
           from "journal_entry"
           where "user_id" = ${userId} and btrim("text") <> ''
           order by "date" desc
@@ -39,7 +40,7 @@ export class JournalEntries extends Context.Service<
       });
 
       const findDoc = SqlSchema.findOneOption({
-        Request: Schema.Struct({ userId: Schema.String, date: Schema.String }),
+        Request: Schema.Struct({ userId: UserId, date: Schema.String }),
         Result: Schema.Struct({ doc: Schema.Uint8Array }),
         execute: ({ userId, date }) => sql`
           select "doc" from "journal_entry"
@@ -70,8 +71,8 @@ export class JournalEntries extends Context.Service<
           const state = Y.encodeStateAsUpdate(doc);
           const text = doc.getText(BODY).toString();
           yield* sql`
-            insert into "journal_entry" ("user_id", "date", "doc", "text")
-            values (${userId}, ${date}, ${state}, ${text})
+            insert into "journal_entry" ("public_id", "user_id", "date", "doc", "text")
+            values (${nanoid()}, ${userId}, ${date}, ${state}, ${text})
             on conflict ("user_id", "date") do update
             set "doc" = excluded."doc", "text" = excluded."text", "updated_at" = now()
           `;
