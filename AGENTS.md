@@ -1,6 +1,6 @@
 # Almanac
 
-Almanac is a personal app for recording your life. The journal is the first feature. AI summaries, habit tracking, fitness tracking and goal tracking come later. `apps/server` is the Effect API, `apps/web` is the TanStack Start web app, and `apps/ios` and `apps/android` will be native Swift and Kotlin apps.
+Almanac is a personal app for recording your life. The journal is the first feature. AI summaries, habit tracking, fitness tracking and goal tracking come later. `apps/server` is the Effect API, `apps/web` is the TanStack Start web app, and `apps/mobile` is the Expo app for iOS and Android.
 
 ## Domain
 

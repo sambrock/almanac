@@ -17,8 +17,7 @@ jobs:
         with:
           requireScope: true
           scopes: |
-            android
-            ios
+            mobile
             server
             web
             api
