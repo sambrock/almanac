@@ -15,6 +15,7 @@ import { JournalDate, JournalEntrySnapshot } from "../src/features/journal/Journ
 import { Mailer } from "../src/infra/Mailer.ts";
 import migration1 from "../src/infra/migrations/0001_better_auth.ts";
 import migration2 from "../src/infra/migrations/0002_journal.ts";
+import migration3 from "../src/infra/migrations/0003_entry_title.ts";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const publicIdPattern = /^[A-Za-z0-9_-]{21}$/;
@@ -52,6 +53,7 @@ test(
         Effect.gen(function* () {
           yield* migration1;
           yield* migration2;
+          yield* migration3;
         }).pipe(Effect.provide(database), Effect.scoped),
       );
       await Effect.runPromise(

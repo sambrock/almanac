@@ -20,6 +20,8 @@ export type JournalDate = typeof JournalDate.Type;
 export class JournalEntrySummary extends Schema.Class<JournalEntrySummary>("JournalEntrySummary")({
   id: JournalEntryPublicId,
   date: JournalDate,
+  // Written by a model once the entry has sat unedited for a few minutes.
+  title: Schema.NullOr(Schema.String),
   preview: Schema.String,
 }) {}
 

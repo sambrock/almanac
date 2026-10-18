@@ -33,7 +33,7 @@ export class JournalEntries extends Context.Service<
         Request: UserId,
         Result: JournalEntrySummary,
         execute: (userId) => sql`
-          select "public_id" as "id", "date"::text as "date", left("text", 280) as "preview"
+          select "public_id" as "id", "date"::text as "date", "title", left("text", 280) as "preview"
           from "journal_entry"
           where "user_id" = ${userId} and btrim("text") <> ''
           order by "date" desc

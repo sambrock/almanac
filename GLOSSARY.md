@@ -12,6 +12,10 @@ _Avoid_: Diary, notebook
 What a user wrote for one journal date. A journal date has at most one entry.
 _Avoid_: Note, post, page, day
 
+**Entry title**:
+A few words naming what an entry is about. AI writes it from the entry, and the user can't edit it.
+_Avoid_: Summary, heading, subject
+
 **Entry snapshot**:
 A copy of an entry's saved content at a particular moment.
 

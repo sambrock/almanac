@@ -11,6 +11,9 @@ import type {
   JournalListData,
   JournalListErrors,
   JournalListResponses,
+  JournalTitleData,
+  JournalTitleErrors,
+  JournalTitleResponses,
   UsersMeData,
   UsersMeErrors,
   UsersMeResponses,
@@ -63,5 +66,13 @@ export const journalGet = <ThrowOnError extends boolean = false>(
 ): RequestResult<JournalGetResponses, JournalGetErrors, ThrowOnError> =>
   (options.client ?? client).get<JournalGetResponses, JournalGetErrors, ThrowOnError>({
     url: "/journal/entries/{date}",
+    ...options,
+  });
+
+export const journalTitle = <ThrowOnError extends boolean = false>(
+  options: Options<JournalTitleData, ThrowOnError>,
+): RequestResult<JournalTitleResponses, JournalTitleErrors, ThrowOnError> =>
+  (options.client ?? client).post<JournalTitleResponses, JournalTitleErrors, ThrowOnError>({
+    url: "/journal/entries/{date}/title",
     ...options,
   });
