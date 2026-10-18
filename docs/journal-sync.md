@@ -31,6 +31,8 @@ The server rejects a connection by closing it with a code in 4400-4499, which te
 
 `journal_entry` holds one row per user per journal date. `doc` is the full Yjs state and the source of truth. `text` is a plain-text copy of the body that the server rewrites on every save, for code that reads entries without Yjs (list previews now, search and AI summaries later). Change an entry by changing its doc and let the server derive `text`.
 
+App tables use autoincrement integer primary keys and integer foreign keys. Each row also has a unique NanoID `public_id`. The app API returns public IDs as `id`, including in entry summaries and `/me`. Better Auth uses its numeric IDs, represented as strings, within its own API and sessions. Journal sync still addresses an entry by the authenticated user and journal date. Saving changes keeps the entry's public ID.
+
 The server keeps no documents in memory. For each sync message it takes a Postgres advisory lock on the entry, loads the doc, applies the message, and writes the row only if the doc changed. Opening a day without typing creates no row.
 
 ## Known limits
@@ -41,6 +43,8 @@ The server keeps no documents in memory. For each sync message it takes a Postgr
 - The entries list isn't live. The web client refetches it on window focus and a second after the open entry changes.
 
 ## Testing
+
+Run the server's integration test with `TEST_DATABASE_URL` set to a local Postgres connection URL: `pnpm --filter @almanac/server test`. It creates and removes its own schema, and checks ID generation, authentication, journal persistence and cascading deletes.
 
 Open the same day in two tabs and type in one. The client sets `disableBc: true`, so tabs sync through the server rather than through a BroadcastChannel, and a two-tab test covers the same path as phone to web.
 

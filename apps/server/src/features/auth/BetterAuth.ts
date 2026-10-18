@@ -2,10 +2,20 @@ import { betterAuth } from "better-auth";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
 import { HttpEffect, HttpRouter } from "effect/http";
+import { nanoid } from "nanoid";
 import { Pool } from "pg";
 
 import { AppConfig } from "../../config/AppConfig.ts";
 import { Mailer } from "../../infra/Mailer.ts";
+
+const publicIdField = {
+  type: "string",
+  fieldName: "public_id",
+  required: true,
+  unique: true,
+  input: false,
+  defaultValue: () => nanoid(),
+} as const;
 
 const makeAuth = (options: {
   pool: Pool;
@@ -20,9 +30,11 @@ const makeAuth = (options: {
     secret: options.secret,
     baseURL: options.baseURL,
     trustedOrigins: [options.webOrigin],
+    advanced: { database: { generateId: "serial" } },
     // Map better-auth's camelCase fields to snake_case columns. Plugins that
     // add columns need their own `schema` mapping.
     user: {
+      additionalFields: { publicId: publicIdField },
       fields: {
         emailVerified: "email_verified",
         createdAt: "created_at",
@@ -30,6 +42,7 @@ const makeAuth = (options: {
       },
     },
     session: {
+      additionalFields: { publicId: publicIdField },
       fields: {
         expiresAt: "expires_at",
         ipAddress: "ip_address",
@@ -40,6 +53,7 @@ const makeAuth = (options: {
       },
     },
     account: {
+      additionalFields: { publicId: publicIdField },
       fields: {
         accountId: "account_id",
         providerId: "provider_id",
@@ -54,6 +68,7 @@ const makeAuth = (options: {
       },
     },
     verification: {
+      additionalFields: { publicId: publicIdField },
       fields: {
         expiresAt: "expires_at",
         createdAt: "created_at",
