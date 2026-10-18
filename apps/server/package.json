@@ -9,6 +9,7 @@
     "test": "node --test test/*.test.ts"
   },
   "dependencies": {
+    "@effect/ai-anthropic": "4.0.5",
     "@effect/platform-node": "4.0.5",
     "@effect/sql-pg": "4.0.5",
     "better-auth": "^1.7.10",

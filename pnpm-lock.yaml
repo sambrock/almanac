@@ -120,6 +120,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@effect/ai-anthropic':
+        specifier: 4.0.5
+        version: 4.0.5(effect@4.0.5)
       '@effect/platform-node':
         specifier: 4.0.5
         version: 4.0.5(effect@4.0.5)(redis@6.3.0)
@@ -840,6 +843,11 @@ packages:
 
   '@dotenvx/primitives@0.8.0':
     resolution: {integrity: sha512-VYJy0uhFm9zTJ1TxBaW/pA8bjbOM/OttaNMwZ1RHG4JKyRG7DhSdiqD1ipQoAyoD22olUtxbP78W9xY3Wd11bg==}
+
+  '@effect/ai-anthropic@4.0.5':
+    resolution: {integrity: sha512-Vb8pEJrwqeRd3UT0BtOM2IHlLgRp32XunUnWfEd/DpV0jyKgZHSKVVxsDs6AsMyZpRsD1klDtvfCndDiQV4TyQ==}
+    peerDependencies:
+      effect: ^4.0.5
 
   '@effect/platform-node-shared@4.0.5':
     resolution: {integrity: sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw==}
@@ -6226,6 +6234,10 @@ snapshots:
       yocto-spinner: 1.2.2
 
   '@dotenvx/primitives@0.8.0': {}
+
+  '@effect/ai-anthropic@4.0.5(effect@4.0.5)':
+    dependencies:
+      effect: 4.0.5
 
   '@effect/platform-node-shared@4.0.5(effect@4.0.5)':
     dependencies:

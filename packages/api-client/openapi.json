@@ -141,6 +141,48 @@
           }
         }
       }
+    },
+    "/journal/entries/{date}/title": {
+      "post": {
+        "tags": ["journal"],
+        "operationId": "journal.title",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "<No Content>"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedEncoded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "EntryTitleFailed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryTitleFailedEncoded"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -151,6 +193,20 @@
           "_tag": {
             "type": "string",
             "enum": ["Unauthorized"]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["_tag", "message"],
+        "additionalProperties": false
+      },
+      "EntryTitleFailedEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": ["EntryTitleFailed"]
           },
           "message": {
             "type": "string"
@@ -183,11 +239,21 @@
           "date": {
             "type": "string"
           },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "preview": {
             "type": "string"
           }
         },
-        "required": ["id", "date", "preview"],
+        "required": ["id", "date", "title", "preview"],
         "additionalProperties": false
       },
       "UserEncoded": {

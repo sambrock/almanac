@@ -37,7 +37,9 @@ The editor applies the snapshot's Yjs update before creating CodeMirror or conne
 
 ## Storage
 
-`journal_entry` holds one row per user per journal date. `doc` is the full Yjs state and the source of truth. `text` is a plain-text copy of the body that the server rewrites on every save, for code that reads entries without Yjs (list previews now, search and AI summaries later). Change an entry by changing its doc and let the server derive `text`.
+`journal_entry` holds one row per user per journal date. `doc` is the full Yjs state and the source of truth. `text` is a plain-text copy of the body that the server rewrites on every save, for code that reads entries without Yjs (list previews and entry titles now, search later). Change an entry by changing its doc and let the server derive `text`.
+
+`title` holds the entry title. Pressing Done on the web calls `POST /journal/entries/:date/title`, which titles the entry straight away and reports a failure to the user. For entries nobody pressed Done on, `JournalEntryTitles.ts` runs once a minute and picks up entries that have gone five minutes without an edit and whose `text` no longer matches `title_text_md5`. It asks Claude Haiku for a title, then stores the title and the md5 of the text it read. If the call still fails after two retries, it stores the md5 anyway. That entry waits for its next edit instead of costing a request every minute. The title is a column, not part of the Yjs doc, because only the server writes it. The server needs `ANTHROPIC_API_KEY` to start.
 
 App tables use autoincrement integer primary keys and integer foreign keys. Each row also has a unique NanoID `public_id`. The app API returns public IDs as `id`, including in entry summaries and `/me`. Better Auth uses its numeric IDs, represented as strings, within its own API and sessions. Journal sync still addresses an entry by the authenticated user and journal date. Saving changes keeps the entry's public ID.
 
@@ -48,6 +50,7 @@ The server keeps no documents in memory. For each sync message it takes a Postgr
 - Relaying uses an in-process PubSub. A second server instance would still save correctly, because of the advisory lock, but wouldn't relay to the first instance's sockets. Postgres `LISTEN/NOTIFY` would fix that.
 - The browser stores nothing offline. Edits made while disconnected reach the server on reconnect only if the tab stays open. `y-indexeddb` would fix that.
 - Every keystroke rewrites the entry's row. That's cheap at journal sizes.
+- An entry whose title request failed keeps its old title, or none, until it's edited again. That includes a bad API key.
 - The entries list isn't live. The web client refetches it on window focus and a second after the open entry changes.
 
 ## Testing

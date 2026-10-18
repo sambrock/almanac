@@ -9,6 +9,11 @@ export type UnauthorizedEncoded = {
   message: string;
 };
 
+export type EntryTitleFailedEncoded = {
+  _tag: "EntryTitleFailed";
+  message: string;
+};
+
 export type JournalEntrySnapshotEncoded = {
   doc: string;
   body: string;
@@ -17,6 +22,7 @@ export type JournalEntrySnapshotEncoded = {
 export type JournalEntrySummaryEncoded = {
   id: string;
   date: string;
+  title: string | null;
   preview: string;
 };
 
@@ -121,3 +127,34 @@ export type JournalGetResponses = {
 };
 
 export type JournalGetResponse = JournalGetResponses[keyof JournalGetResponses];
+
+export type JournalTitleData = {
+  body?: never;
+  path: {
+    date: string;
+  };
+  query?: never;
+  url: "/journal/entries/{date}/title";
+};
+
+export type JournalTitleErrors = {
+  /**
+   * Unauthorized
+   */
+  401: UnauthorizedEncoded;
+  /**
+   * EntryTitleFailed
+   */
+  502: EntryTitleFailedEncoded;
+};
+
+export type JournalTitleError = JournalTitleErrors[keyof JournalTitleErrors];
+
+export type JournalTitleResponses = {
+  /**
+   * <No Content>
+   */
+  204: void;
+};
+
+export type JournalTitleResponse = JournalTitleResponses[keyof JournalTitleResponses];

@@ -1,3 +1,4 @@
+import { journalTitleMutation } from "@almanac/api-client/tanstack-query";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
@@ -12,6 +13,7 @@ import { cn } from "cn";
 
 import { JournalEditor } from "@/components/journal/JournalEditor";
 import { Button } from "@/components/ui/button";
+import { apiClientOptions } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
   addDays,
@@ -68,7 +70,12 @@ function JournalPage() {
       </aside>
       <main className="flex min-w-0 flex-1 flex-col gap-6">
         <Header date={date} email={me.data.email} />
-        <h1 className="text-2xl font-semibold tracking-tight">{formatJournalDate(date, "long")}</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {formatJournalDate(date, "long")}
+          </h1>
+          <DoneButton key={date} date={date} />
+        </div>
         <EntryEditor key={date} date={date} />
       </main>
     </div>
@@ -82,6 +89,33 @@ function GoToToday() {
 function EntryEditor({ date }: { date: string }) {
   const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
   return <JournalEditor date={date} initialEntry={data} />;
+}
+
+// Titles the entry now instead of waiting for the server to notice it's idle.
+function DoneButton({ date }: { date: string }) {
+  const hydrated = useHydrated();
+  const queryClient = useQueryClient();
+  const done = useMutation({
+    ...journalTitleMutation(apiClientOptions),
+    onSuccess: () => queryClient.invalidateQueries(journalEntriesQueryOptions),
+  });
+
+  return (
+    <div className="flex items-center gap-3">
+      {done.isError && (
+        <span className="text-destructive text-sm">
+          {done.error.message ?? "Couldn't write a title"}
+        </span>
+      )}
+      <Button
+        size="sm"
+        disabled={!hydrated || done.isPending}
+        onClick={() => done.mutate({ path: { date } })}
+      >
+        Done
+      </Button>
+    </div>
+  );
 }
 
 function Header({ date, email }: { date: string; email: string }) {
@@ -164,7 +198,9 @@ function EntryList({ activeDate }: { activeDate: string }) {
           <span className="block text-sm font-medium">
             {formatJournalDate(entry.date, "short")}
           </span>
-          <span className="text-muted-foreground line-clamp-2 text-xs">{entry.preview}</span>
+          {entry.title !== null && (
+            <span className="text-muted-foreground line-clamp-2 text-xs">{entry.title}</span>
+          )}
         </Link>
       ))}
     </nav>
