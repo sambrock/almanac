@@ -12,7 +12,7 @@ Each entry is a Yjs document. Every client edits its own copy and swaps Yjs upda
 
 The endpoint speaks the y-websocket wire protocol. Messages are lib0-encoded, type 0 for sync and type 1 for awareness. A native client must speak the same protocol.
 
-1. The client opens `ws(s)://<api>/journal/sync/<YYYY-MM-DD>`. The web app authenticates with its session cookie. Native apps send `Authorization: Bearer <token>`.
+1. The client opens `ws(s)://<api>/journal/sync/<YYYY-MM-DD>`. The web app authenticates with its session cookie. The mobile app sends `Authorization: Bearer <token>`.
 2. The server sends sync step 1, its state vector. The client replies with whatever the server is missing, which is how offline edits reach it.
 3. The client sends its own step 1 and the server replies with step 2.
 4. From then on each local change goes up as an update. The server saves it, then relays it.
@@ -21,11 +21,11 @@ The server relays every message to every socket on the same entry, the sender in
 
 The server rejects a connection by closing it with a code in 4400-4499, which tells y-websocket to stop reconnecting.
 
-| Code | Meaning                                                                                    |
-| ---- | ------------------------------------------------------------------------------------------ |
-| 4400 | The date isn't a real `YYYY-MM-DD` date                                                    |
-| 4401 | No valid session                                                                           |
-| 4403 | The `Origin` header isn't the web app's. Native apps send no `Origin` and skip this check. |
+| Code | Meaning                                                                                                                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4400 | The date isn't a real `YYYY-MM-DD` date                                                                                                                                                     |
+| 4401 | No valid session                                                                                                                                                                            |
+| 4403 | The `Origin` header isn't the web app's. Sockets that send `Authorization` skip this check, because browsers can't set that header on a WebSocket. React Native sends the API's own origin. |
 
 ## Initial render
 

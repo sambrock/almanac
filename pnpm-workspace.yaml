@@ -1,6 +1,7 @@
 packages:
   - apps/server
   - apps/web
+  - apps/mobile
   - packages/*
 minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.104.4"

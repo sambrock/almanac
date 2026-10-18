@@ -52,9 +52,12 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
 
         // Close codes 4400-4499 tell y-websocket to stop reconnecting.
         // Browsers always send Origin, so this blocks other sites from
-        // riding the session cookie. Native apps don't send one.
+        // riding the session cookie. Browsers can't set Authorization on a
+        // WebSocket, so a socket that sends one is the mobile app, which
+        // sends the API's own origin.
         const origin = request.headers.origin;
-        if (origin !== undefined && origin !== webOrigin) {
+        const bearer = request.headers.authorization !== undefined;
+        if (!bearer && origin !== undefined && origin !== webOrigin) {
           yield* writer.write(new Socket.CloseEvent(4403, "Origin not allowed"));
           return HttpServerResponse.empty();
         }
