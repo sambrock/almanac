@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Button } from "#/components/ui/button";
@@ -7,22 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/com
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
+import { today } from "#/lib/journal";
+import { meQueryOptions } from "#/lib/me";
 
 export const Route = createFileRoute("/")({ component: Home });
 
-type Me = { id: string; email: string; name: string; emailVerified: boolean };
-
-const meQueryKey = ["me"];
-
-async function fetchMe(): Promise<Me | null> {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/me`, { credentials: "include" });
-  if (response.status === 401) return null;
-  if (!response.ok) throw new Error(`GET /me failed with ${response.status}`);
-  return response.json();
-}
-
 function Home() {
-  const me = useQuery({ queryKey: meQueryKey, queryFn: fetchMe });
+  const me = useQuery(meQueryOptions);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
@@ -31,7 +22,7 @@ function Home() {
       ) : me.isError ? (
         <p className="text-destructive text-sm">{me.error.message}. Is the server running?</p>
       ) : me.data ? (
-        <SignedIn me={me.data} />
+        <Navigate to="/journal/$date" params={{ date: today() }} replace />
       ) : (
         <SignIn />
       )}
@@ -58,7 +49,7 @@ function SignIn() {
       const { error } = await authClient.signIn.emailOtp({ email, otp });
       if (error) throw new Error(error.message ?? "Couldn't sign in");
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: meQueryKey }),
+    onSuccess: () => queryClient.invalidateQueries(meQueryOptions),
   });
 
   if (step === "email") {
@@ -142,35 +133,6 @@ function SignIn() {
             Use a different email
           </Button>
         </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SignedIn({ me }: { me: Me }) {
-  const queryClient = useQueryClient();
-
-  const signOut = useMutation({
-    mutationFn: () => authClient.signOut(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: meQueryKey }),
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Signed in</CardTitle>
-        <CardDescription>{me.email}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground text-xs font-medium">GET /me</p>
-          <pre className="bg-muted overflow-x-auto rounded-md p-3 text-xs">
-            {JSON.stringify(me, null, 2)}
-          </pre>
-        </div>
-        <Button variant="outline" disabled={signOut.isPending} onClick={() => signOut.mutate()}>
-          {signOut.isPending ? "Signing out…" : "Sign out"}
-        </Button>
       </CardContent>
     </Card>
   );
