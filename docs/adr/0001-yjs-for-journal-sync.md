@@ -5,5 +5,5 @@ Journal entries sync between devices with Yjs, relayed through our own server. W
 ## Consequences
 
 - Entries are stored as Yjs state. Moving off Yjs means converting every stored entry.
-- The native iOS and Android apps need Yjs too, through the y-crdt (yrs) Swift and Kotlin bindings, and each has to bind a native text view to a `Y.Text`.
+- The Expo app needs Yjs too. It can use the same `yjs` and `y-websocket` packages as the web app. CodeMirror doesn't run in React Native, so how the mobile editor binds to a `Y.Text` is still open.
 - Habits, fitness and goals are structured records, which Yjs suits poorly. Their sync is undecided, and last-write-wins may be fine for them.
