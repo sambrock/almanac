@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { bearer, emailOTP } from "better-auth/plugins";
-import { Context, Effect, Layer, Redacted } from "effect";
+import { Context, Effect, Layer, Option, Redacted } from "effect";
 import { HttpEffect, HttpRouter } from "effect/http";
 import { Pool } from "pg";
 
@@ -11,15 +11,58 @@ const makeAuth = (options: {
   pool: Pool;
   secret: string;
   baseURL: string;
+  devOtpCode: string | undefined;
   sendOtp: (email: string, otp: string) => void;
 }) =>
   betterAuth({
     database: options.pool,
     secret: options.secret,
     baseURL: options.baseURL,
+    // Map better-auth's camelCase fields to snake_case columns. Plugins that
+    // add columns need their own `schema` mapping.
+    user: {
+      fields: {
+        emailVerified: "email_verified",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    session: {
+      fields: {
+        expiresAt: "expires_at",
+        ipAddress: "ip_address",
+        userAgent: "user_agent",
+        userId: "user_id",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    account: {
+      fields: {
+        accountId: "account_id",
+        providerId: "provider_id",
+        userId: "user_id",
+        accessToken: "access_token",
+        refreshToken: "refresh_token",
+        idToken: "id_token",
+        accessTokenExpiresAt: "access_token_expires_at",
+        refreshTokenExpiresAt: "refresh_token_expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    verification: {
+      fields: {
+        expiresAt: "expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
     plugins: [
       emailOTP({
         storeOTP: "hashed",
+        // Returning undefined falls back to better-auth's random code.
+        generateOTP: () => options.devOtpCode,
         // better-auth recommends not awaiting delivery so response timing
         // doesn't reveal whether the email has an account.
         sendVerificationOTP: async ({ email, otp }) => options.sendOtp(email, otp),
@@ -43,10 +86,16 @@ export class BetterAuth extends Context.Service<BetterAuth, ReturnType<typeof ma
         (pool) => Effect.promise(() => pool.end()),
       );
 
+      const devOtpCode = Option.getOrUndefined(config.devOtpCode);
+      if (devOtpCode !== undefined) {
+        yield* Effect.logWarning(`DEV_OTP_CODE is set: every OTP will be ${devOtpCode}`);
+      }
+
       return makeAuth({
         pool,
         secret: Redacted.value(config.betterAuthSecret),
         baseURL: config.betterAuthUrl,
+        devOtpCode,
         sendOtp: (email, otp) => {
           Effect.runForkWith(context)(mailer.sendOtp(email, otp));
         },
