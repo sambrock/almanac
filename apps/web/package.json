@@ -1,5 +1,5 @@
 {
-  "name": "@platform/web",
+  "name": "@almanac/web",
   "private": true,
   "type": "module",
   "imports": {

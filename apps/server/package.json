@@ -1,18 +1,22 @@
 {
-  "name": "@platform/server",
+  "name": "@almanac/server",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/main.ts",
-    "start": "node src/main.ts",
+    "dev": "node --env-file-if-exists=.env --watch src/main.ts",
+    "start": "node --env-file-if-exists=.env src/main.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.5",
-    "effect": "4.0.5"
+    "@effect/sql-pg": "4.0.5",
+    "better-auth": "^1.7.10",
+    "effect": "4.0.5",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "typescript": "^6.0.3"
   }
 }

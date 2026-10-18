@@ -1,12 +1,9 @@
-import { Schema } from "effect";
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/http-api";
+import { HttpApi, OpenApi } from "effect/http-api";
 
-export class HealthGroup extends HttpApiGroup.make("health").add(
-  HttpApiEndpoint.get("check", "/health", {
-    success: Schema.Struct({ status: Schema.Literal("ok") }),
-  }),
-) {}
+import { HealthApi } from "./features/health/HealthApi.ts";
+import { UsersApi } from "./features/users/UsersApi.ts";
 
 export class Api extends HttpApi.make("api")
-  .add(HealthGroup)
-  .annotate(OpenApi.Title, "Platform API") {}
+  .add(HealthApi)
+  .add(UsersApi)
+  .annotate(OpenApi.Title, "Almanac API") {}
