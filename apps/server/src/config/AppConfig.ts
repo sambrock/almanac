@@ -7,6 +7,7 @@ export class AppConfig extends Context.Service<
     readonly databaseUrl: Redacted.Redacted;
     readonly betterAuthSecret: Redacted.Redacted;
     readonly betterAuthUrl: string;
+    readonly webOrigin: string;
     readonly devOtpCode: Option.Option<string>;
   }
 >()("almanac/AppConfig") {
@@ -17,6 +18,7 @@ export class AppConfig extends Context.Service<
       databaseUrl: Config.Redacted("DATABASE_URL"),
       betterAuthSecret: Config.Redacted("BETTER_AUTH_SECRET"),
       betterAuthUrl: Config.String("BETTER_AUTH_URL"),
+      webOrigin: Config.String("WEB_ORIGIN"),
       devOtpCode: Config.String("DEV_OTP_CODE").pipe(Config.option),
     }),
   );

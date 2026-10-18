@@ -32,9 +32,18 @@ const ApiLive = HttpApiBuilder.layer(Api, { openapiPath: "/openapi.json" }).pipe
 
 const DocsLive = HttpApiScalar.layer(Api, { path: "/docs" });
 
+const CorsLive = Layer.unwrap(
+  Effect.gen(function* () {
+    const { webOrigin } = yield* AppConfig;
+    return HttpRouter.cors({ allowedOrigins: [webOrigin], credentials: true });
+  }),
+);
+
 // Layers further down are built first, so migrations finish before the
 // server starts listening.
-export const AppLayer = HttpRouter.serve(Layer.mergeAll(ApiLive, AuthRoutes, DocsLive)).pipe(
+export const AppLayer = HttpRouter.serve(
+  Layer.mergeAll(ApiLive, AuthRoutes, DocsLive, CorsLive),
+).pipe(
   Layer.provide(BetterAuth.layer),
   Layer.provide(Mailer.layerLog),
   Layer.provide(HttpServerLive),

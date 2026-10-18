@@ -11,6 +11,7 @@ const makeAuth = (options: {
   pool: Pool;
   secret: string;
   baseURL: string;
+  webOrigin: string;
   devOtpCode: string | undefined;
   sendOtp: (email: string, otp: string) => void;
 }) =>
@@ -18,6 +19,7 @@ const makeAuth = (options: {
     database: options.pool,
     secret: options.secret,
     baseURL: options.baseURL,
+    trustedOrigins: [options.webOrigin],
     // Map better-auth's camelCase fields to snake_case columns. Plugins that
     // add columns need their own `schema` mapping.
     user: {
@@ -95,6 +97,7 @@ export class BetterAuth extends Context.Service<BetterAuth, ReturnType<typeof ma
         pool,
         secret: Redacted.value(config.betterAuthSecret),
         baseURL: config.betterAuthUrl,
+        webOrigin: config.webOrigin,
         devOtpCode,
         sendOtp: (email, otp) => {
           Effect.runForkWith(context)(mailer.sendOtp(email, otp));
