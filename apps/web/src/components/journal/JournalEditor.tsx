@@ -1,24 +1,18 @@
+import type { JournalGetResponse } from "@almanac/api-client";
 import { defaultKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useHydrated } from "@tanstack/react-router";
+import { useLayoutEffect, useRef, useState } from "react";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { WebsocketProvider } from "y-websocket";
-import * as Y from "yjs";
 
 import { journalEntriesQueryOptions, journalSyncUrl } from "#/lib/journal";
+import { createJournalDocument } from "#/lib/journal-document";
 import { meQueryOptions } from "#/lib/me";
-
-type SyncStatus = "connecting" | "synced" | "offline";
-
-const statusLabel: Record<SyncStatus, string> = {
-  connecting: "Connecting…",
-  synced: "Synced",
-  offline: "Offline. Changes sync when you reconnect.",
-};
 
 const markdownStyle = HighlightStyle.define([
   { tag: tags.heading1, fontSize: "1.5em", fontWeight: "700" },
@@ -44,19 +38,23 @@ const theme = EditorView.theme({
 });
 
 // Edits the entry for `date`. Remount it (with `key`) to switch dates.
-export function JournalEditor({ date }: { date: string }) {
+export function JournalEditor({
+  date,
+  initialEntry,
+}: {
+  date: string;
+  initialEntry: JournalGetResponse;
+}) {
   const queryClient = useQueryClient();
   const parent = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<SyncStatus>("connecting");
+  // Later query refreshes must not replace a live document or its pending edits.
+  const [snapshot] = useState(initialEntry);
+  const hydrated = useHydrated();
 
-  useEffect(() => {
-    const doc = new Y.Doc();
+  useLayoutEffect(() => {
+    const doc = createJournalDocument(snapshot);
     // disableBc: sync tabs through the server, the same way other devices do.
     const provider = new WebsocketProvider(journalSyncUrl, date, doc, { disableBc: true });
-    const updateStatus = () =>
-      setStatus(provider.synced ? "synced" : provider.wsconnected ? "connecting" : "offline");
-    provider.on("status", updateStatus);
-    provider.on("sync", updateStatus);
     // The server closed the socket for good, most likely because the session ended.
     provider.on("closed", () => queryClient.invalidateQueries(meQueryOptions));
 
@@ -72,6 +70,7 @@ export function JournalEditor({ date }: { date: string }) {
 
     const view = new EditorView({
       parent: parent.current!,
+      doc: doc.getText("body").toString(),
       extensions: [
         keymap.of([...yUndoManagerKeymap, ...defaultKeymap]),
         markdown(),
@@ -91,13 +90,15 @@ export function JournalEditor({ date }: { date: string }) {
       provider.destroy();
       doc.destroy();
     };
-  }, [date, queryClient]);
+  }, [date, queryClient, snapshot]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-xs" aria-live="polite">
-        {statusLabel[status]}
-      </p>
+    <div>
+      {!hydrated && snapshot?.body && (
+        <div className="min-h-[60vh] whitespace-pre-wrap text-[1.0625rem] leading-[1.75]">
+          {snapshot.body}
+        </div>
+      )}
       <div ref={parent} />
     </div>
   );

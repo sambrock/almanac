@@ -1,6 +1,13 @@
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  ClientOnly,
+  Link,
+  Navigate,
+  createFileRoute,
+  redirect,
+  useHydrated,
+} from "@tanstack/react-router";
 import { cn } from "cn";
 
 import { JournalEditor } from "#/components/journal/JournalEditor";
@@ -11,11 +18,25 @@ import {
   formatJournalDate,
   isJournalDate,
   journalEntriesQueryOptions,
+  journalEntryQueryOptions,
   today,
 } from "#/lib/journal";
-import { meQueryOptions } from "#/lib/me";
+import { meQueryOptions, refreshSession } from "#/lib/me";
+import { prefetchJournal } from "#/lib/prefetch-journal";
 
-export const Route = createFileRoute("/journal/$date")({ component: JournalPage });
+export const Route = createFileRoute("/journal/$date")({
+  loader: async ({ context, params }) => {
+    await prefetchJournal(
+      context.queryClient,
+      isJournalDate(params.date) ? params.date : undefined,
+    );
+    const session = context.queryClient.getQueryState(meQueryOptions.queryKey);
+    if (session?.error?._tag === "Unauthorized") {
+      throw redirect({ to: "/" });
+    }
+  },
+  component: JournalPage,
+});
 
 function JournalPage() {
   const { date } = Route.useParams();
@@ -25,13 +46,19 @@ function JournalPage() {
     return <p className="text-muted-foreground p-6 text-sm">Loading…</p>;
   }
   if (me.isError) {
+    if (me.error._tag === "Unauthorized") return <Navigate to="/" replace />;
     return (
-      <p className="text-destructive p-6 text-sm">{me.error.message}. Is the server running?</p>
+      <p className="text-destructive p-6 text-sm">
+        {me.error.message ?? "Couldn't load your account"}. Is the server running?
+      </p>
     );
   }
-  if (me.data === null) return <Navigate to="/" replace />;
   if (!isJournalDate(date)) {
-    return <Navigate to="/journal/$date" params={{ date: today() }} replace />;
+    return (
+      <ClientOnly>
+        <GoToToday />
+      </ClientOnly>
+    );
   }
 
   return (
@@ -42,17 +69,30 @@ function JournalPage() {
       <main className="flex min-w-0 flex-1 flex-col gap-6">
         <Header date={date} email={me.data.email} />
         <h1 className="text-2xl font-semibold tracking-tight">{formatJournalDate(date, "long")}</h1>
-        <JournalEditor key={date} date={date} />
+        <EntryEditor key={date} date={date} />
       </main>
     </div>
   );
 }
 
+function GoToToday() {
+  return <Navigate to="/journal/$date" params={{ date: today() }} replace />;
+}
+
+function EntryEditor({ date }: { date: string }) {
+  const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
+  return <JournalEditor date={date} initialEntry={data} />;
+}
+
 function Header({ date, email }: { date: string; email: string }) {
+  const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const signOut = useMutation({
-    mutationFn: () => authClient.signOut(),
-    onSuccess: () => queryClient.invalidateQueries(meQueryOptions),
+    mutationFn: async () => {
+      const { error } = await authClient.signOut();
+      if (error) throw new Error(error.message ?? "Couldn't sign out");
+    },
+    onSuccess: () => refreshSession(queryClient),
   });
 
   return (
@@ -79,7 +119,8 @@ function Header({ date, email }: { date: string; email: string }) {
         variant="outline"
         size="sm"
         nativeButton={false}
-        render={<Link to="/journal/$date" params={{ date: today() }} />}
+        disabled={!hydrated}
+        render={<Link to="/journal/$date" params={{ date: hydrated ? today() : date }} />}
       >
         Today
       </Button>
@@ -102,7 +143,11 @@ function EntryList({ activeDate }: { activeDate: string }) {
   return (
     <nav className="flex flex-col gap-1" aria-label="Journal entries">
       <h2 className="text-muted-foreground mb-2 px-3 text-xs font-medium">Entries</h2>
-      {entries.isError && <p className="text-destructive px-3 text-sm">{entries.error.message}</p>}
+      {entries.isError && (
+        <p className="text-destructive px-3 text-sm">
+          {entries.error.message ?? "Couldn't load journal entries"}
+        </p>
+      )}
       {entries.data?.length === 0 && (
         <p className="text-muted-foreground px-3 text-sm">Nothing written yet.</p>
       )}

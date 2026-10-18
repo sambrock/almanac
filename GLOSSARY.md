@@ -12,6 +12,9 @@ _Avoid_: Diary, notebook
 What a user wrote for one journal date. A journal date has at most one entry.
 _Avoid_: Note, post, page, day
 
+**Entry snapshot**:
+A copy of an entry's saved content at a particular moment.
+
 **Journal date**:
 The calendar day an entry belongs to, in the user's own time zone.
 _Avoid_: Created date, timestamp

@@ -22,3 +22,10 @@ export class JournalEntrySummary extends Schema.Class<JournalEntrySummary>("Jour
   date: JournalDate,
   preview: Schema.String,
 }) {}
+
+export class JournalEntrySnapshot extends Schema.Class<JournalEntrySnapshot>(
+  "JournalEntrySnapshot",
+)({
+  doc: Schema.Uint8ArrayFromBase64,
+  body: Schema.String,
+}) {}

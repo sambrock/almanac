@@ -5,7 +5,7 @@ export const UserId = Schema.Number.check(Schema.isInt32(), Schema.isGreaterThan
 );
 export type UserId = typeof UserId.Type;
 
-const PublicId = Schema.String.check(Schema.isPattern(/^[a-z0-9]{21}$/));
+const PublicId = Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{21}$/));
 
 export const UserPublicId = PublicId.pipe(Schema.brand("UserPublicId"));
 export type UserPublicId = typeof UserPublicId.Type;

@@ -8,9 +8,15 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
 import { today } from "#/lib/journal";
-import { meQueryOptions } from "#/lib/me";
+import { meQueryOptions, refreshSession } from "#/lib/me";
+import { prefetchJournal } from "#/lib/prefetch-journal";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  // Fetch on the server; let the browser decide today's journal date.
+  ssr: "data-only",
+  loader: ({ context }) => prefetchJournal(context.queryClient),
+  component: Home,
+});
 
 function Home() {
   const me = useQuery(meQueryOptions);
@@ -19,9 +25,11 @@ function Home() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
       {me.isPending ? (
         <p className="text-muted-foreground text-sm">Loading…</p>
-      ) : me.isError ? (
-        <p className="text-destructive text-sm">{me.error.message}. Is the server running?</p>
-      ) : me.data ? (
+      ) : me.isError && me.error._tag !== "Unauthorized" ? (
+        <p className="text-destructive text-sm">
+          {me.error.message ?? "Couldn't load your account"}. Is the server running?
+        </p>
+      ) : me.isSuccess ? (
         <Navigate to="/journal/$date" params={{ date: today() }} replace />
       ) : (
         <SignIn />
@@ -49,7 +57,7 @@ function SignIn() {
       const { error } = await authClient.signIn.emailOtp({ email, otp });
       if (error) throw new Error(error.message ?? "Couldn't sign in");
     },
-    onSuccess: () => queryClient.invalidateQueries(meQueryOptions),
+    onSuccess: () => refreshSession(queryClient),
   });
 
   if (step === "email") {

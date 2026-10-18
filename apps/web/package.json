@@ -6,12 +6,14 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "test": "node --test test/*.test.ts",
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@almanac/api-client": "workspace:*",
     "@base-ui/react": "^1.9.0",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-markdown": "^6.5.2",
