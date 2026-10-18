@@ -1,0 +1,22 @@
+{
+  "name": "@almanac/api-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.gen.ts",
+    "./tanstack-query": "./src/@tanstack/react-query.gen.ts"
+  },
+  "scripts": {
+    "generate": "pnpm --filter @almanac/server exec node src/openapi.ts > openapi.json && openapi-ts && oxfmt src openapi.json",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "@tanstack/react-query": "5.104.4",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.104.4"
+  }
+}

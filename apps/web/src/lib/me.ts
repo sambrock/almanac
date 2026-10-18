@@ -1,16 +1,19 @@
-import { queryOptions } from "@tanstack/react-query";
+import { usersMeOptions } from "@almanac/api-client/tanstack-query";
+import { hashKey, type QueryClient, queryOptions } from "@tanstack/react-query";
 
-export type Me = { id: string; email: string; name: string; emailVerified: boolean };
+import { apiClientOptions } from "./api-client";
 
-// Resolves to null when signed out.
 export const meQueryOptions = queryOptions({
-  queryKey: ["me"],
-  queryFn: async (): Promise<Me | null> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
-      credentials: "include",
-    });
-    if (response.status === 401) return null;
-    if (!response.ok) throw new Error(`GET /me failed with ${response.status}`);
-    return response.json();
-  },
+  ...usersMeOptions(apiClientOptions),
+  staleTime: 30_000,
+  retryOnMount: false,
+  retry: (failureCount, error) => error._tag !== "Unauthorized" && failureCount < 3,
 });
+
+export async function refreshSession(queryClient: QueryClient) {
+  await queryClient.cancelQueries();
+  queryClient.removeQueries({
+    predicate: (query) => query.queryHash !== hashKey(meQueryOptions.queryKey),
+  });
+  await queryClient.invalidateQueries(meQueryOptions);
+}

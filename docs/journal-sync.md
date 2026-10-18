@@ -27,6 +27,14 @@ The server rejects a connection by closing it with a code in 4400-4499, which te
 | 4401 | No valid session                                                                           |
 | 4403 | The `Origin` header isn't the web app's. Native apps send no `Origin` and skip this check. |
 
+## Initial render
+
+`GET /journal/entries/:date` reads an entry snapshot for the authenticated user. It returns the Markdown body and the full Yjs document state, encoded as base64, or `null` if the date has no entry. Reading a snapshot creates no row.
+
+The web route loader forwards the incoming session cookie and awaits the generated snapshot query during server rendering. The router creates a QueryClient per request and hydrates its data into the browser. Saved Markdown appears in the initial HTML until CodeMirror takes over.
+
+The editor applies the snapshot's Yjs update before creating CodeMirror or connecting the WebSocket. It preserves the document's existing Yjs identities, so live sync merges edits made after the snapshot without duplicating the prefetched text. Each route load refreshes the snapshot. Query refetches do not replace a mounted editor's live document.
+
 ## Storage
 
 `journal_entry` holds one row per user per journal date. `doc` is the full Yjs state and the source of truth. `text` is a plain-text copy of the body that the server rewrites on every save, for code that reads entries without Yjs (list previews now, search and AI summaries later). Change an entry by changing its doc and let the server derive `text`.
