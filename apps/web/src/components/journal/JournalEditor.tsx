@@ -10,9 +10,9 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { WebsocketProvider } from "y-websocket";
 
-import { journalEntriesQueryOptions, journalSyncUrl } from "#/lib/journal";
-import { createJournalDocument } from "#/lib/journal-document";
-import { meQueryOptions } from "#/lib/me";
+import { journalEntriesQueryOptions, journalSyncUrl } from "@/lib/journal";
+import { createJournalDocument } from "@/lib/journal-document";
+import { meQueryOptions } from "@/lib/me";
 
 const markdownStyle = HighlightStyle.define([
   { tag: tags.heading1, fontSize: "1.5em", fontWeight: "700" },

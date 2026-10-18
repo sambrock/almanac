@@ -10,9 +10,9 @@ import {
 } from "@tanstack/react-router";
 import { cn } from "cn";
 
-import { JournalEditor } from "#/components/journal/JournalEditor";
-import { Button } from "#/components/ui/button";
-import { authClient } from "#/lib/auth-client";
+import { JournalEditor } from "@/components/journal/JournalEditor";
+import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
 import {
   addDays,
   formatJournalDate,
@@ -20,9 +20,9 @@ import {
   journalEntriesQueryOptions,
   journalEntryQueryOptions,
   today,
-} from "#/lib/journal";
-import { meQueryOptions, refreshSession } from "#/lib/me";
-import { prefetchJournal } from "#/lib/prefetch-journal";
+} from "@/lib/journal";
+import { meQueryOptions, refreshSession } from "@/lib/me";
+import { prefetchJournal } from "@/lib/prefetch-journal";
 
 export const Route = createFileRoute("/journal/$date")({
   loader: async ({ context, params }) => {

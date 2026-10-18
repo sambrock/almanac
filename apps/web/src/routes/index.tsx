@@ -2,14 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import { authClient } from "#/lib/auth-client";
-import { today } from "#/lib/journal";
-import { meQueryOptions, refreshSession } from "#/lib/me";
-import { prefetchJournal } from "#/lib/prefetch-journal";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
+import { today } from "@/lib/journal";
+import { meQueryOptions, refreshSession } from "@/lib/me";
+import { prefetchJournal } from "@/lib/prefetch-journal";
 
 export const Route = createFileRoute("/")({
   // Fetch on the server; let the browser decide today's journal date.
