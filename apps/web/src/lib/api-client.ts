@@ -18,6 +18,5 @@ export const apiClientOptions = {
   fetch: fetchWithSession,
 };
 
-// Retrying won't sign the user in.
-export const retryUnlessUnauthorized = (failureCount: number, error: { _tag: string }) =>
-  error._tag !== "Unauthorized" && failureCount < 3;
+// y-websocket appends `/<date>` to this.
+export const journalSyncUrl = `${import.meta.env.VITE_API_URL.replace(/^http/, "ws")}/journal/sync`;

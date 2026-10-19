@@ -10,9 +10,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { WebsocketProvider } from "y-websocket";
 
-import { journalEntriesQueryOptions, journalSyncUrl } from "@/lib/journal";
-import { createJournalDocument } from "@/lib/journal-document";
-import { meQueryOptions } from "@/lib/me";
+import { journalSyncUrl } from "@/lib/api-client";
+import { BODY, createJournalDocument } from "@/lib/journal-document";
+import { journalEntriesQueryOptions } from "@/lib/query/journal";
+import { meQueryOptions } from "@/lib/query/me";
 
 const markdownStyle = HighlightStyle.define([
   { tag: tags.heading1, fontSize: "1.5em", fontWeight: "700" },
@@ -53,7 +54,7 @@ export function JournalEditor({
 
   useLayoutEffect(() => {
     const doc = createJournalDocument(snapshot);
-    const body = doc.getText("body");
+    const body = doc.getText(BODY);
     // disableBc: sync tabs through the server, the same way other devices do.
     const provider = new WebsocketProvider(journalSyncUrl, date, doc, { disableBc: true });
     // The server closed the socket for good, most likely because the session ended.

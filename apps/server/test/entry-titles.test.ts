@@ -1,11 +1,10 @@
 import { Effect, Layer } from "effect";
 import { AiError, LanguageModel } from "effect/ai";
 import { SqlClient } from "effect/sql";
-import { nanoid } from "nanoid";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { UserId } from "../src/domain/ids.ts";
+import { makePublicId, UserId } from "../src/domain/ids.ts";
 import { BODY, JournalEntries } from "../src/features/journal/JournalEntries.ts";
 import { JournalDate } from "../src/features/journal/JournalEntry.ts";
 import { titleEntry, titleStaleEntries } from "../src/features/journal/JournalEntryTitles.ts";
@@ -45,7 +44,7 @@ test("entries get a title once they stop changing", { skip: skipWithoutDatabase 
         const entries = yield* JournalEntries;
         const [{ id }] = yield* sql<{ id: number }>`
             insert into "user" ("public_id", "name", "email", "email_verified")
-            values (${nanoid()}, 'Test', 'test@example.com', true)
+            values (${makePublicId()}, 'Test', 'test@example.com', true)
             returning "id"
           `;
         const userId = UserId.make(id);

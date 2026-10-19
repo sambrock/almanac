@@ -11,22 +11,22 @@ export const JournalHandlers = HttpApiBuilder.group(Api, "journal", (handlers) =
   handlers
     .handle("list", () =>
       Effect.gen(function* () {
-        const user = yield* CurrentUser;
+        const { userId } = yield* CurrentUser;
         const entries = yield* JournalEntries;
-        return yield* entries.list(user.userId);
+        return yield* entries.list(userId);
       }),
     )
     .handle("get", ({ params }) =>
       Effect.gen(function* () {
-        const user = yield* CurrentUser;
+        const { userId } = yield* CurrentUser;
         const entries = yield* JournalEntries;
-        return Option.getOrNull(yield* entries.get(user.userId, params.date));
+        return Option.getOrNull(yield* entries.get(userId, params.date));
       }),
     )
     .handle("title", ({ params }) =>
       Effect.gen(function* () {
-        const user = yield* CurrentUser;
-        yield* titleEntry(user.userId, params.date).pipe(
+        const { userId } = yield* CurrentUser;
+        yield* titleEntry(userId, params.date).pipe(
           Effect.tapError((error) => Effect.logWarning("Couldn't title journal entry", error)),
           Effect.mapError(() => new EntryTitleFailed({ message: "Couldn't write a title" })),
         );

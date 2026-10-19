@@ -2,11 +2,11 @@
 
 Each entry is a Yjs document. Every client edits its own copy and swaps Yjs updates with the server over a WebSocket. Yjs merges concurrent edits, so two devices editing the same entry never overwrite each other, even if one was offline. [ADR 0001](adr/0001-yjs-for-journal-sync.md) records why we picked Yjs.
 
-| Part          | Where                                                                                                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Editor        | `apps/web/src/components/journal/JournalEditor.tsx`. CodeMirror bound to the entry's `body` Y.Text by y-codemirror.next, connected by y-websocket's `WebsocketProvider`. |
-| Sync endpoint | `apps/server/src/features/journal/JournalSync.ts`                                                                                                                        |
-| Storage       | `apps/server/src/features/journal/JournalEntries.ts`, table `journal_entry`                                                                                              |
+| Part          | Where                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Editor        | `apps/web/src/components/journal/journal-editor.tsx`. CodeMirror bound to the entry's `body` Y.Text by y-codemirror.next, connected by y-websocket's `WebsocketProvider`. |
+| Sync endpoint | `apps/server/src/features/journal/JournalSync.ts`                                                                                                                         |
+| Storage       | `apps/server/src/features/journal/JournalEntries.ts`, table `journal_entry`                                                                                               |
 
 ## Protocol
 
@@ -41,7 +41,7 @@ The editor applies the snapshot's Yjs update before creating CodeMirror or conne
 
 `title` holds the entry title. Pressing Done on the web calls `POST /journal/entries/:date/title`, which titles the entry straight away and reports a failure to the user. For entries nobody pressed Done on, `JournalEntryTitles.ts` runs once a minute and picks up entries that have gone five minutes without an edit and whose `text` no longer matches `title_text_md5`. It asks Claude Haiku for a title, then stores the title and the md5 of the text it read. If the call still fails after two retries, it stores the md5 anyway. That entry waits for its next edit instead of costing a request every minute. The title is a column, not part of the Yjs doc, because only the server writes it. The server needs `ANTHROPIC_API_KEY` to start.
 
-App tables use autoincrement integer primary keys and integer foreign keys. Each row also has a unique NanoID `public_id`. The app API returns public IDs as `id`, including in entry summaries and `/me`. Better Auth uses its numeric IDs, represented as strings, within its own API and sessions. Journal sync still addresses an entry by the authenticated user and journal date. Saving changes keeps the entry's public ID.
+App tables use autoincrement integer primary keys and integer foreign keys. Each row also has a unique `public_id`: 21 lowercase letters and digits, made by `makePublicId` in `apps/server/src/domain/ids.ts`. The app API returns public IDs as `id`, including in entry summaries and `/me`. Better Auth uses its numeric IDs, represented as strings, within its own API and sessions. Journal sync still addresses an entry by the authenticated user and journal date. Saving changes keeps the entry's public ID.
 
 The server keeps no documents in memory. For each sync message it takes a Postgres advisory lock on the entry, loads the doc, applies the message, and writes the row only if the doc changed. Opening a day without typing creates no row.
 

@@ -7,14 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { today } from "@/lib/journal";
-import { meQueryOptions, refreshSession } from "@/lib/me";
-import { prefetchJournal } from "@/lib/prefetch-journal";
+import { meQueryOptions, refreshSession } from "@/lib/query/me";
+import { today } from "@/lib/utils/date";
 
 export const Route = createFileRoute("/")({
   // Fetch on the server; let the browser decide today's journal date.
   ssr: "data-only",
-  loader: ({ context }) => prefetchJournal(context.queryClient),
+  loader: ({ context }) => context.queryClient.prefetchQuery(meQueryOptions),
   component: Home,
 });
 
