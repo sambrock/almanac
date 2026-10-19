@@ -26,7 +26,9 @@ test("journal bodies and previews render on the server with isolated session dat
       // A slow response must still finish before the page renders.
       setTimeout(() => {
         response.end(
-          JSON.stringify([{ id: `${user}-entry`, date: "2026-10-18", preview: `${user} preview` }]),
+          JSON.stringify([
+            { id: `${user}-entry`, date: "2026-10-18", title: null, preview: `${user} preview` },
+          ]),
         );
       }, 50);
       return;

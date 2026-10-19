@@ -17,3 +17,7 @@ export const apiClientOptions = {
   // Read cookies inside the request, never into shared config or query keys.
   fetch: fetchWithSession,
 };
+
+// Retrying won't sign the user in.
+export const retryUnlessUnauthorized = (failureCount: number, error: { _tag: string }) =>
+  error._tag !== "Unauthorized" && failureCount < 3;

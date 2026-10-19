@@ -51,13 +51,12 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
         const writer = yield* socket.writer;
 
         // Close codes 4400-4499 tell y-websocket to stop reconnecting.
-        // Browsers always send Origin, so this blocks other sites from
-        // riding the session cookie. Browsers can't set Authorization on a
+        // A cookie socket must come from the web app, so other sites can't
+        // ride the session cookie. Browsers can't set Authorization on a
         // WebSocket, so a socket that sends one is the mobile app, which
         // sends the API's own origin.
-        const origin = request.headers.origin;
         const bearer = request.headers.authorization !== undefined;
-        if (!bearer && origin !== undefined && origin !== webOrigin) {
+        if (!bearer && request.headers.origin !== webOrigin) {
           yield* writer.write(new Socket.CloseEvent(4403, "Origin not allowed"));
           return HttpServerResponse.empty();
         }
@@ -70,7 +69,7 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
           return HttpServerResponse.empty();
         }
 
-        const userId = user.value.id;
+        const { userId } = user.value;
         const room = `${userId}/${date.value}`;
 
         // Subscribe before reading the stored state, so no update published

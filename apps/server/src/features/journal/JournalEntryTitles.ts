@@ -10,14 +10,14 @@ const instructions = `Write a title for the journal entry the user sends, the wa
 const EntryTitle = Schema.Struct({ title: Schema.String });
 
 // An entry with text whose title is missing or was written for older text.
-const UntitledEntry = Schema.Struct({
+const EntryToTitle = Schema.Struct({
   id: Schema.Number,
   text: Schema.String,
   textMd5: Schema.String,
 });
 
 const writeTitle = Effect.fn("JournalEntryTitles.writeTitle")(function* (
-  entry: typeof UntitledEntry.Type,
+  entry: typeof EntryToTitle.Type,
 ) {
   const sql = yield* SqlClient.SqlClient;
   const response = yield* LanguageModel.generateObject({
@@ -42,8 +42,8 @@ export const titleEntry = Effect.fn("JournalEntryTitles.titleEntry")(function* (
 ) {
   const sql = yield* SqlClient.SqlClient;
   const findUntitled = SqlSchema.findOneOption({
-    Request: Schema.Struct({ userId: UserId, date: Schema.String }),
-    Result: UntitledEntry,
+    Request: Schema.Struct({ userId: UserId, date: JournalDate }),
+    Result: EntryToTitle,
     execute: ({ userId, date }) => sql`
       select "id", "text", md5("text") as "textMd5" from "journal_entry"
       where "user_id" = ${userId} and "date" = ${date}
@@ -63,7 +63,7 @@ export const titleStaleEntries = Effect.gen(function* () {
 
   const findStale = SqlSchema.findAll({
     Request: Schema.Void,
-    Result: UntitledEntry,
+    Result: EntryToTitle,
     execute: () => sql`
       select "id", "text", md5("text") as "textMd5" from "journal_entry"
       where btrim("text") <> ''

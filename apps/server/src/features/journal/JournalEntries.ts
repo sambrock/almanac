@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import * as Y from "yjs";
 
 import { UserId } from "../../domain/ids.ts";
-import { type JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./JournalEntry.ts";
+import { JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./JournalEntry.ts";
 
 // The entry body lives in this Y.Text. Every client must use the same name.
 export const BODY = "body";
@@ -41,7 +41,7 @@ export class JournalEntries extends Context.Service<
       });
 
       const findDoc = SqlSchema.findOneOption({
-        Request: Schema.Struct({ userId: UserId, date: Schema.String }),
+        Request: Schema.Struct({ userId: UserId, date: JournalDate }),
         Result: Schema.Struct({ doc: Schema.Uint8Array, body: Schema.String }),
         execute: ({ userId, date }) => sql`
           select "doc", "text" as "body" from "journal_entry"

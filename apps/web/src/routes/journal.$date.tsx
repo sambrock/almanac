@@ -88,7 +88,7 @@ function GoToToday() {
 
 function EntryEditor({ date }: { date: string }) {
   const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
-  return <JournalEditor date={date} initialEntry={data} />;
+  return <JournalEditor date={date} initialSnapshot={data} />;
 }
 
 // Titles the entry now instead of waiting for the server to notice it's idle.
@@ -198,9 +198,9 @@ function EntryList({ activeDate }: { activeDate: string }) {
           <span className="block text-sm font-medium">
             {formatJournalDate(entry.date, "short")}
           </span>
-          {entry.title !== null && (
-            <span className="text-muted-foreground line-clamp-2 text-xs">{entry.title}</span>
-          )}
+          <span className="text-muted-foreground line-clamp-2 text-xs">
+            {entry.title ?? entry.preview}
+          </span>
         </Link>
       ))}
     </nav>
