@@ -6,6 +6,7 @@ import { client } from "../client.gen";
 import {
   healthCheck,
   journalGet,
+  journalGoDeeper,
   journalList,
   journalTitle,
   type Options,
@@ -17,6 +18,9 @@ import type {
   JournalGetData,
   JournalGetError,
   JournalGetResponse,
+  JournalGoDeeperData,
+  JournalGoDeeperError,
+  JournalGoDeeperResponse,
   JournalListData,
   JournalListError,
   JournalListResponse,
@@ -160,6 +164,30 @@ export const journalTitleMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await journalTitle({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const journalGoDeeperMutation = (
+  options?: Partial<Options<JournalGoDeeperData>>,
+): UseMutationOptions<
+  JournalGoDeeperResponse,
+  JournalGoDeeperError,
+  Options<JournalGoDeeperData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    JournalGoDeeperResponse,
+    JournalGoDeeperError,
+    Options<JournalGoDeeperData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await journalGoDeeper({
         ...options,
         ...fnOptions,
         throwOnError: true,

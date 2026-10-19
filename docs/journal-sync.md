@@ -5,7 +5,8 @@ Each entry is a Yjs document. Every client edits its own copy and swaps Yjs upda
 | Part          | Where                                                                                                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Editor        | `apps/web/src/components/journal/journal-editor.tsx`. CodeMirror bound to the entry's `body` Y.Text by y-codemirror.next, connected by y-websocket's `WebsocketProvider`. |
-| Sync endpoint | `apps/server/src/features/journal/JournalSync.ts`                                                                                                                         |
+| Sync endpoint | `apps/server/src/features/journal/JournalSync.ts`, relaying through `JournalRelay.ts`                                                                                     |
+| Follow-ups    | `apps/web/src/components/journal/follow-ups.ts` in the editor, `apps/server/src/features/journal/JournalEntryReflections.ts` on the server.                               |
 | Storage       | `apps/server/src/features/journal/JournalEntries.ts`, table `journal_entry`                                                                                               |
 
 ## Protocol
@@ -26,6 +27,14 @@ The server rejects a connection by closing it with a code in 4400-4499, which te
 | 4400 | The date isn't a real `YYYY-MM-DD` date                                                                                                                                                     |
 | 4401 | No valid session                                                                                                                                                                            |
 | 4403 | The `Origin` header isn't the web app's. Sockets that send `Authorization` skip this check, because browsers can't set that header on a WebSocket. React Native sends the API's own origin. |
+
+## Follow-ups
+
+The doc holds two shared types. `body` is a Y.Text with everything the user wrote, including their answers. `followUps` is a Y.Array of `{ response, question, after }` objects that only the server adds. Keeping follow-ups out of `body` means the body, and so the `text` column, never contains words the AI wrote.
+
+`after` is a Yjs relative position, stored with `Y.relativePositionToJSON`. It points at the line break before the follow-up, so the follow-up keeps its place when text above it changes. The editor shows each follow-up as a CodeMirror block widget at that position, in blue, with the response and the question on separate lines. The user can't select or edit a follow-up, and the editor won't let the user's own edits delete the line break above one.
+
+Pressing Go deeper calls `POST /journal/entries/:date/follow-ups`. The server turns the doc into a conversation: the text before the first follow-up, and the text between later ones, become user messages, and the follow-ups become assistant messages. It sends that to Claude Opus. It refuses an entry with no text, and an entry whose last follow-up has nothing written after it. It then adds a line break to the end of `body` if one is missing, appends the follow-up anchored there, and publishes the update through `JournalRelay`, so every open editor shows it at once. The editor that sees a new follow-up moves the cursor to the end, below it.
 
 ## Initial render
 
@@ -51,6 +60,7 @@ The server keeps no documents in memory. For each sync message it takes a Postgr
 - The browser stores nothing offline. Edits made while disconnected reach the server on reconnect only if the tab stays open. `y-indexeddb` would fix that.
 - Every keystroke rewrites the entry's row. That's cheap at journal sizes.
 - An entry whose title request failed keeps its old title, or none, until it's edited again. That includes a bad API key.
+- The mobile app doesn't show follow-ups yet. Answers written there still reach the conversation, because they're body text.
 - The entries list isn't live. The web client refetches it on window focus and a second after the open entry changes.
 
 ## Testing

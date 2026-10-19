@@ -9,6 +9,16 @@ export type UnauthorizedEncoded = {
   message: string;
 };
 
+export type FollowUpFailedEncoded = {
+  _tag: "FollowUpFailed";
+  message: string;
+};
+
+export type CantGoDeeperEncoded = {
+  _tag: "CantGoDeeper";
+  message: string;
+};
+
 export type EntryTitleFailedEncoded = {
   _tag: "EntryTitleFailed";
   message: string;
@@ -158,3 +168,38 @@ export type JournalTitleResponses = {
 };
 
 export type JournalTitleResponse = JournalTitleResponses[keyof JournalTitleResponses];
+
+export type JournalGoDeeperData = {
+  body?: never;
+  path: {
+    date: string;
+  };
+  query?: never;
+  url: "/journal/entries/{date}/follow-ups";
+};
+
+export type JournalGoDeeperErrors = {
+  /**
+   * Unauthorized
+   */
+  401: UnauthorizedEncoded;
+  /**
+   * CantGoDeeper
+   */
+  409: CantGoDeeperEncoded;
+  /**
+   * FollowUpFailed
+   */
+  502: FollowUpFailedEncoded;
+};
+
+export type JournalGoDeeperError = JournalGoDeeperErrors[keyof JournalGoDeeperErrors];
+
+export type JournalGoDeeperResponses = {
+  /**
+   * <No Content>
+   */
+  204: void;
+};
+
+export type JournalGoDeeperResponse = JournalGoDeeperResponses[keyof JournalGoDeeperResponses];

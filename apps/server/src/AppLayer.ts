@@ -13,6 +13,7 @@ import { HealthHandlers } from "./features/health/HealthHandlers.ts";
 import { JournalEntries } from "./features/journal/JournalEntries.ts";
 import { JournalEntryTitlesLive } from "./features/journal/JournalEntryTitles.ts";
 import { JournalHandlers } from "./features/journal/JournalHandlers.ts";
+import { JournalRelay } from "./features/journal/JournalRelay.ts";
 import { JournalSyncRoutes } from "./features/journal/JournalSync.ts";
 import { UsersHandlers } from "./features/users/UsersHandlers.ts";
 import { MigratorLive, PgLive } from "./infra/Database.ts";
@@ -59,7 +60,7 @@ export const AppLayer = Layer.mergeAll(
   HttpRouter.serve(Layer.mergeAll(ApiLive, AuthRoutes, JournalSyncRoutes, DocsLive, CorsLive)),
   JournalEntryTitlesLive,
 ).pipe(
-  Layer.provide(JournalEntries.layer),
+  Layer.provide([JournalEntries.layer, JournalRelay.layer]),
   Layer.provide(LanguageModelLive),
   Layer.provide(BetterAuth.layer),
   Layer.provide(Mailer.layerLog),

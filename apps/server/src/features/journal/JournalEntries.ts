@@ -8,6 +8,17 @@ import { JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./Journa
 // The entry body lives in this Y.Text. Every client must use the same name.
 export const BODY = "body";
 
+// Follow-ups live in this Y.Array, apart from the body, so the body only ever
+// holds what the user wrote. Each one shows just after the body character
+// that `after` points to, a relative position from `Y.relativePositionToJSON`.
+// Only the server adds follow-ups.
+export const FOLLOW_UPS = "followUps";
+export const FollowUp = Schema.Struct({
+  response: Schema.String,
+  question: Schema.String,
+  after: Schema.Unknown,
+});
+
 export class JournalEntries extends Context.Service<
   JournalEntries,
   {

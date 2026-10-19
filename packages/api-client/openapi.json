@@ -183,6 +183,58 @@
           }
         }
       }
+    },
+    "/journal/entries/{date}/follow-ups": {
+      "post": {
+        "tags": ["journal"],
+        "operationId": "journal.goDeeper",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "<No Content>"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedEncoded"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CantGoDeeper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CantGoDeeperEncoded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "FollowUpFailed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowUpFailedEncoded"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -193,6 +245,34 @@
           "_tag": {
             "type": "string",
             "enum": ["Unauthorized"]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["_tag", "message"],
+        "additionalProperties": false
+      },
+      "FollowUpFailedEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": ["FollowUpFailed"]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["_tag", "message"],
+        "additionalProperties": false
+      },
+      "CantGoDeeperEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": ["CantGoDeeper"]
           },
           "message": {
             "type": "string"

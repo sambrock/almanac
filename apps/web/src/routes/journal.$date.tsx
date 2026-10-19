@@ -1,4 +1,8 @@
-import { journalGetOptions, journalTitleMutation } from "@almanac/api-client/tanstack-query";
+import {
+  journalGetOptions,
+  journalGoDeeperMutation,
+  journalTitleMutation,
+} from "@almanac/api-client/tanstack-query";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
   queryOptions,
@@ -81,13 +85,7 @@ function JournalPage() {
       </aside>
       <main className="flex min-w-0 flex-1 flex-col gap-6">
         <Header date={date} email={me.data.email} />
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {formatJournalDate(date, "long")}
-          </h1>
-          <DoneButton key={date} date={date} />
-        </div>
-        <EntryEditor key={date} date={date} />
+        <Entry key={date} date={date} />
       </main>
     </div>
   );
@@ -97,9 +95,36 @@ function GoToToday() {
   return <Navigate to="/journal/$date" params={{ date: today() }} replace />;
 }
 
-function EntryEditor({ date }: { date: string }) {
+function Entry({ date }: { date: string }) {
+  const hydrated = useHydrated();
   const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
-  return <JournalEditor date={date} initialSnapshot={data} />;
+  // The follow-up reaches the editor through journal sync, not this response.
+  const goDeeper = useMutation(journalGoDeeperMutation(apiClientOptions));
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{formatJournalDate(date, "long")}</h1>
+        <div className="flex items-center gap-3">
+          {goDeeper.isError && (
+            <span className="text-destructive text-sm">
+              {goDeeper.error.message ?? "Couldn't go deeper"}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!hydrated || goDeeper.isPending}
+            onClick={() => goDeeper.mutate({ path: { date } })}
+          >
+            {goDeeper.isPending ? "Going deeper…" : "Go deeper"}
+          </Button>
+          <DoneButton date={date} />
+        </div>
+      </div>
+      <JournalEditor date={date} initialSnapshot={data} />
+    </>
+  );
 }
 
 // Titles the entry now instead of waiting for the server to notice it's idle.

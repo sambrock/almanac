@@ -2,7 +2,6 @@ import { Effect, Option, PubSub, Schema } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Socket } from "effect/socket";
 import * as decoding from "lib0/decoding";
-import * as encoding from "lib0/encoding";
 import * as syncProtocol from "y-protocols/sync";
 
 import { AppConfig } from "../../config/AppConfig.ts";
@@ -10,17 +9,16 @@ import { BetterAuth } from "../auth/BetterAuth.ts";
 import { sessionUser } from "../auth/sessionUser.ts";
 import { JournalEntries } from "./JournalEntries.ts";
 import { JournalDate } from "./JournalEntry.ts";
+import {
+  entryRoom,
+  JournalRelay,
+  messageSync,
+  publishUpdate,
+  syncMessage,
+} from "./JournalRelay.ts";
 
-// Message types from the y-websocket wire protocol.
-const messageSync = 0;
+// Message type for awareness in the y-websocket wire protocol.
 const messageAwareness = 1;
-
-const syncMessage = (write: (encoder: encoding.Encoder) => void) => {
-  const encoder = encoding.createEncoder();
-  encoding.writeVarUint(encoder, messageSync);
-  write(encoder);
-  return encoding.toUint8Array(encoder);
-};
 
 // y-websocket clients connect to `/journal/sync/<date>`, one socket per open
 // entry. Every message is relayed to all sockets on the same entry, including
@@ -31,7 +29,7 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
     const auth = yield* BetterAuth;
     const entries = yield* JournalEntries;
     const { webOrigin } = yield* AppConfig;
-    const relay = yield* PubSub.unbounded<{ room: string; message: Uint8Array }>();
+    const relay = yield* JournalRelay;
 
     yield* router.add(
       "GET",
@@ -70,7 +68,7 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
         }
 
         const { userId } = user.value;
-        const room = `${userId}/${date.value}`;
+        const room = entryRoom(userId, date.value);
 
         // Subscribe before reading the stored state, so no update published
         // in between is missed.
@@ -104,12 +102,7 @@ export const JournalSyncRoutes = HttpRouter.use((router) =>
           );
           // A reply holding only the message type header means there's nothing to send.
           if (reply.length > 1) yield* writer.write(reply);
-          if (Option.isSome(update)) {
-            const message = syncMessage((encoder) =>
-              syncProtocol.writeUpdate(encoder, update.value),
-            );
-            yield* PubSub.publish(relay, { room, message });
-          }
+          if (Option.isSome(update)) yield* publishUpdate(room, update.value);
         });
 
         yield* pull.pipe(

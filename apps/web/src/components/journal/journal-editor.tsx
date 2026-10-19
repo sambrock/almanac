@@ -10,6 +10,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { WebsocketProvider } from "y-websocket";
 
+import { followUps } from "@/components/journal/follow-ups";
 import { journalSyncUrl } from "@/lib/api-client";
 import { BODY, createJournalDocument } from "@/lib/journal-document";
 import { journalEntriesQueryOptions } from "@/lib/query/journal";
@@ -82,6 +83,7 @@ export function JournalEditor({
         theme,
         // No awareness: remote cursors aren't useful with a single author.
         yCollab(body, null),
+        followUps(doc),
       ],
     });
     view.focus();

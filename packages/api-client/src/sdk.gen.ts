@@ -8,6 +8,9 @@ import type {
   JournalGetData,
   JournalGetErrors,
   JournalGetResponses,
+  JournalGoDeeperData,
+  JournalGoDeeperErrors,
+  JournalGoDeeperResponses,
   JournalListData,
   JournalListErrors,
   JournalListResponses,
@@ -74,5 +77,13 @@ export const journalTitle = <ThrowOnError extends boolean = false>(
 ): RequestResult<JournalTitleResponses, JournalTitleErrors, ThrowOnError> =>
   (options.client ?? client).post<JournalTitleResponses, JournalTitleErrors, ThrowOnError>({
     url: "/journal/entries/{date}/title",
+    ...options,
+  });
+
+export const journalGoDeeper = <ThrowOnError extends boolean = false>(
+  options: Options<JournalGoDeeperData, ThrowOnError>,
+): RequestResult<JournalGoDeeperResponses, JournalGoDeeperErrors, ThrowOnError> =>
+  (options.client ?? client).post<JournalGoDeeperResponses, JournalGoDeeperErrors, ThrowOnError>({
+    url: "/journal/entries/{date}/follow-ups",
     ...options,
   });
