@@ -6,7 +6,7 @@
     "dev": "node --env-file-if-exists=.env --watch src/main.ts",
     "start": "node --env-file-if-exists=.env src/main.ts",
     "typecheck": "tsc",
-    "test": "node --test test/*.test.ts"
+    "test": "node --env-file-if-exists=.env --test test/*.test.ts"
   },
   "dependencies": {
     "@effect/ai-anthropic": "4.0.5",
