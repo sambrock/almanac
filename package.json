@@ -7,7 +7,10 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "codegen:api": "pnpm --filter @almanac/api-client generate"
+    "codegen:api": "pnpm --filter @almanac/api-client generate",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "check": "oxlint && oxfmt --check && pnpm -r typecheck && pnpm -r test"
   },
   "devDependencies": {
     "oxfmt": "^0.73.0",
