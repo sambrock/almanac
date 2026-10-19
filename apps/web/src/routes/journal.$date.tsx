@@ -1,6 +1,12 @@
-import { journalTitleMutation } from "@almanac/api-client/tanstack-query";
+import { journalGetOptions, journalTitleMutation } from "@almanac/api-client/tanstack-query";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import {
   ClientOnly,
   Link,
@@ -11,31 +17,36 @@ import {
 } from "@tanstack/react-router";
 import { cn } from "cn";
 
-import { JournalEditor } from "@/components/journal/JournalEditor";
+import { JournalEditor } from "@/components/journal/journal-editor";
 import { Button } from "@/components/ui/button";
 import { apiClientOptions } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import {
-  addDays,
-  formatJournalDate,
-  isJournalDate,
-  journalEntriesQueryOptions,
-  journalEntryQueryOptions,
-  today,
-} from "@/lib/journal";
-import { meQueryOptions, refreshSession } from "@/lib/me";
-import { prefetchJournal } from "@/lib/prefetch-journal";
+import { journalEntriesQueryOptions } from "@/lib/query/journal";
+import { meQueryOptions, refreshSession } from "@/lib/query/me";
+import { addDays, formatJournalDate, isJournalDate, today } from "@/lib/utils/date";
+
+const journalEntryQueryOptions = (date: string) =>
+  queryOptions({
+    ...journalGetOptions({ ...apiClientOptions, path: { date } }),
+    // The loader refreshes the snapshot before opening an editor. After that,
+    // the mounted editor owns its document and receives updates through Yjs.
+    staleTime: 0,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
 export const Route = createFileRoute("/journal/$date")({
-  loader: async ({ context, params }) => {
-    await prefetchJournal(
-      context.queryClient,
-      isJournalDate(params.date) ? params.date : undefined,
-    );
-    const session = context.queryClient.getQueryState(meQueryOptions.queryKey);
-    if (session?.error?._tag === "Unauthorized") {
-      throw redirect({ to: "/" });
-    }
+  loader: async ({ context: { queryClient }, params: { date } }) => {
+    await queryClient.prefetchQuery(meQueryOptions);
+    const session = queryClient.getQueryState(meQueryOptions.queryKey);
+    if (session?.error?._tag === "Unauthorized") throw redirect({ to: "/" });
+    if (session?.status !== "success") return;
+
+    await Promise.all([
+      queryClient.prefetchQuery(journalEntriesQueryOptions),
+      isJournalDate(date) ? queryClient.fetchQuery(journalEntryQueryOptions(date)) : undefined,
+    ]);
   },
   component: JournalPage,
 });
@@ -88,7 +99,7 @@ function GoToToday() {
 
 function EntryEditor({ date }: { date: string }) {
   const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
-  return <JournalEditor date={date} initialEntry={data} />;
+  return <JournalEditor date={date} initialSnapshot={data} />;
 }
 
 // Titles the entry now instead of waiting for the server to notice it's idle.
@@ -198,9 +209,9 @@ function EntryList({ activeDate }: { activeDate: string }) {
           <span className="block text-sm font-medium">
             {formatJournalDate(entry.date, "short")}
           </span>
-          {entry.title !== null && (
-            <span className="text-muted-foreground line-clamp-2 text-xs">{entry.title}</span>
-          )}
+          <span className="text-muted-foreground line-clamp-2 text-xs">
+            {entry.title ?? entry.preview}
+          </span>
         </Link>
       ))}
     </nav>

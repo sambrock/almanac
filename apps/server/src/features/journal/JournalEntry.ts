@@ -7,10 +7,13 @@ import { JournalEntryPublicId } from "../../domain/ids.ts";
 export const JournalDate = Schema.String.check(
   Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/),
   Schema.makeFilter(
-    // Rejects dates like 2026-02-30, which `Date` would roll over to March.
+    // Rejects dates like 2026-02-30, which `Date` would roll over to March,
+    // and year 0, which `Date` accepts but Postgres doesn't.
     (date) => {
       const time = Date.parse(`${date}T00:00:00Z`);
-      return !Number.isNaN(time) && new Date(time).toISOString().startsWith(date);
+      return (
+        date >= "0001-01-01" && !Number.isNaN(time) && new Date(time).toISOString().startsWith(date)
+      );
     },
     { expected: "a real calendar date" },
   ),
@@ -20,7 +23,8 @@ export type JournalDate = typeof JournalDate.Type;
 export class JournalEntrySummary extends Schema.Class<JournalEntrySummary>("JournalEntrySummary")({
   id: JournalEntryPublicId,
   date: JournalDate,
-  // Written by a model once the entry has sat unedited for a few minutes.
+  // Written by a model when the user presses Done, or once the entry has gone
+  // five minutes without an edit.
   title: Schema.NullOr(Schema.String),
   preview: Schema.String,
 }) {}

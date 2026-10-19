@@ -17,3 +17,6 @@ export const apiClientOptions = {
   // Read cookies inside the request, never into shared config or query keys.
   fetch: fetchWithSession,
 };
+
+// y-websocket appends `/<date>` to this.
+export const journalSyncUrl = `${import.meta.env.VITE_API_URL.replace(/^http/, "ws")}/journal/sync`;

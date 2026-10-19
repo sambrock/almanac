@@ -1,30 +1,5 @@
-import { journalGetOptions, journalListOptions } from "@almanac/api-client/tanstack-query";
-import { queryOptions } from "@tanstack/react-query";
-
-import { apiClientOptions } from "./api-client";
-
 // A journal date is a calendar day in the user's local time zone, as
 // `YYYY-MM-DD`. Each date has at most one entry.
-
-export const journalEntriesQueryOptions = queryOptions({
-  ...journalListOptions(apiClientOptions),
-  staleTime: 30_000,
-  retry: (failureCount, error) => error._tag !== "Unauthorized" && failureCount < 3,
-});
-
-export const journalEntryQueryOptions = (date: string) =>
-  queryOptions({
-    ...journalGetOptions({ ...apiClientOptions, path: { date } }),
-    // Route loaders refresh the snapshot before opening an editor. After that,
-    // the mounted editor owns its document and receives updates through Yjs.
-    staleTime: 0,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-
-// y-websocket appends `/<date>` to this.
-export const journalSyncUrl = `${import.meta.env.VITE_API_URL.replace(/^http/, "ws")}/journal/sync`;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 

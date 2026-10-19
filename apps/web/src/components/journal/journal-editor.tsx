@@ -10,9 +10,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { WebsocketProvider } from "y-websocket";
 
-import { journalEntriesQueryOptions, journalSyncUrl } from "@/lib/journal";
-import { createJournalDocument } from "@/lib/journal-document";
-import { meQueryOptions } from "@/lib/me";
+import { journalSyncUrl } from "@/lib/api-client";
+import { BODY, createJournalDocument } from "@/lib/journal-document";
+import { journalEntriesQueryOptions } from "@/lib/query/journal";
+import { meQueryOptions } from "@/lib/query/me";
 
 const markdownStyle = HighlightStyle.define([
   { tag: tags.heading1, fontSize: "1.5em", fontWeight: "700" },
@@ -40,19 +41,20 @@ const theme = EditorView.theme({
 // Edits the entry for `date`. Remount it (with `key`) to switch dates.
 export function JournalEditor({
   date,
-  initialEntry,
+  initialSnapshot,
 }: {
   date: string;
-  initialEntry: JournalGetResponse;
+  initialSnapshot: JournalGetResponse;
 }) {
   const queryClient = useQueryClient();
   const parent = useRef<HTMLDivElement>(null);
   // Later query refreshes must not replace a live document or its pending edits.
-  const [snapshot] = useState(initialEntry);
+  const [snapshot] = useState(initialSnapshot);
   const hydrated = useHydrated();
 
   useLayoutEffect(() => {
     const doc = createJournalDocument(snapshot);
+    const body = doc.getText(BODY);
     // disableBc: sync tabs through the server, the same way other devices do.
     const provider = new WebsocketProvider(journalSyncUrl, date, doc, { disableBc: true });
     // The server closed the socket for good, most likely because the session ended.
@@ -70,7 +72,7 @@ export function JournalEditor({
 
     const view = new EditorView({
       parent: parent.current!,
-      doc: doc.getText("body").toString(),
+      doc: body.toString(),
       extensions: [
         keymap.of([...yUndoManagerKeymap, ...defaultKeymap]),
         markdown(),
@@ -79,7 +81,7 @@ export function JournalEditor({
         placeholder("What happened today?"),
         theme,
         // No awareness: remote cursors aren't useful with a single author.
-        yCollab(doc.getText("body"), null),
+        yCollab(body, null),
       ],
     });
     view.focus();

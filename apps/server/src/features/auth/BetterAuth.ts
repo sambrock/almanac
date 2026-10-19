@@ -2,10 +2,10 @@ import { betterAuth } from "better-auth";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
 import { HttpEffect, HttpRouter } from "effect/http";
-import { nanoid } from "nanoid";
 import { Pool } from "pg";
 
 import { AppConfig } from "../../config/AppConfig.ts";
+import { makePublicId } from "../../domain/ids.ts";
 import { Mailer } from "../../infra/Mailer.ts";
 
 const publicIdField = {
@@ -14,7 +14,7 @@ const publicIdField = {
   required: true,
   unique: true,
   input: false,
-  defaultValue: () => nanoid(),
+  defaultValue: () => makePublicId(),
 } as const;
 
 const makeAuth = (options: {

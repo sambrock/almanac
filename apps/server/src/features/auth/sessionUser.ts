@@ -4,7 +4,8 @@ import { UserId, UserPublicId } from "../../domain/ids.ts";
 import { User } from "../users/User.ts";
 import type { BetterAuth } from "./BetterAuth.ts";
 
-export type SessionUser = { id: UserId; user: User };
+// `userId` is the internal key for queries. `user` is what the app API returns.
+export type SessionUser = { userId: UserId; user: User };
 
 // Reads the better-auth session cookie or `Authorization: Bearer <token>`.
 export const sessionUser = Effect.fnUntraced(function* (
@@ -12,13 +13,12 @@ export const sessionUser = Effect.fnUntraced(function* (
   headers: Headers,
 ) {
   const session = yield* Effect.promise(() => auth.api.getSession({ headers }));
-  if (session === null) return Option.none<SessionUser>();
+  if (session === null) return Option.none();
 
   const { id, publicId, email, name, emailVerified } = session.user;
-  // Better Auth returns serial IDs as strings. Keep that internal ID separate
-  // from the public user returned by the app API.
-  return Option.some<SessionUser>({
-    id: UserId.make(Number(id)),
+  return Option.some({
+    // Better Auth returns serial IDs as strings.
+    userId: UserId.make(Number(id)),
     user: new User({ id: UserPublicId.make(publicId), email, name, emailVerified }),
   });
 });

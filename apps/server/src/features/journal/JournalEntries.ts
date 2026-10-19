@@ -1,10 +1,9 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { nanoid } from "nanoid";
 import * as Y from "yjs";
 
-import { UserId } from "../../domain/ids.ts";
-import { type JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./JournalEntry.ts";
+import { makePublicId, UserId } from "../../domain/ids.ts";
+import { JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./JournalEntry.ts";
 
 // The entry body lives in this Y.Text. Every client must use the same name.
 export const BODY = "body";
@@ -41,7 +40,7 @@ export class JournalEntries extends Context.Service<
       });
 
       const findDoc = SqlSchema.findOneOption({
-        Request: Schema.Struct({ userId: UserId, date: Schema.String }),
+        Request: Schema.Struct({ userId: UserId, date: JournalDate }),
         Result: Schema.Struct({ doc: Schema.Uint8Array, body: Schema.String }),
         execute: ({ userId, date }) => sql`
           select "doc", "text" as "body" from "journal_entry"
@@ -80,7 +79,7 @@ export class JournalEntries extends Context.Service<
           const text = doc.getText(BODY).toString();
           yield* sql`
             insert into "journal_entry" ("public_id", "user_id", "date", "doc", "text")
-            values (${nanoid()}, ${userId}, ${date}, ${state}, ${text})
+            values (${makePublicId()}, ${userId}, ${date}, ${state}, ${text})
             on conflict ("user_id", "date") do update
             set "doc" = excluded."doc", "text" = excluded."text", "updated_at" = now()
           `;
