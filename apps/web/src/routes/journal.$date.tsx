@@ -1,4 +1,8 @@
-import { journalGetOptions, journalTitleMutation } from "@almanac/api-client/tanstack-query";
+import {
+  journalGetOptions,
+  journalGoDeeperMutation,
+  journalSummariseMutation,
+} from "@almanac/api-client/tanstack-query";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
   queryOptions,
@@ -81,13 +85,7 @@ function JournalPage() {
       </aside>
       <main className="flex min-w-0 flex-1 flex-col gap-6">
         <Header date={date} email={me.data.email} />
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {formatJournalDate(date, "long")}
-          </h1>
-          <DoneButton key={date} date={date} />
-        </div>
-        <EntryEditor key={date} date={date} />
+        <Entry key={date} date={date} />
       </main>
     </div>
   );
@@ -97,25 +95,79 @@ function GoToToday() {
   return <Navigate to="/journal/$date" params={{ date: today() }} replace />;
 }
 
-function EntryEditor({ date }: { date: string }) {
+function Entry({ date }: { date: string }) {
+  const hydrated = useHydrated();
   const { data } = useSuspenseQuery(journalEntryQueryOptions(date));
-  return <JournalEditor date={date} initialSnapshot={data} />;
+  // The follow-up reaches the editor through journal sync, not this response.
+  const goDeeper = useMutation(journalGoDeeperMutation(apiClientOptions));
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{formatJournalDate(date, "long")}</h1>
+        <div className="flex items-center gap-3">
+          {goDeeper.isError && (
+            <span className="text-destructive text-sm">
+              {goDeeper.error.message ?? "Couldn't go deeper"}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!hydrated || goDeeper.isPending}
+            onClick={() => goDeeper.mutate({ path: { date } })}
+          >
+            {goDeeper.isPending ? "Going deeper…" : "Go deeper"}
+          </Button>
+          <DoneButton date={date} />
+        </div>
+      </div>
+      <JournalEditor date={date} initialSnapshot={data} />
+      {data?.summary && data.summary.length > 0 && data.body.length > SHORT_ENTRY && (
+        <EntrySummary summary={data.summary} />
+      )}
+    </>
+  );
 }
 
-// Titles the entry now instead of waiting for the server to notice it's idle.
+// An entry this short is already a summary of itself.
+const SHORT_ENTRY = 280;
+
+function EntrySummary({ summary }: { summary: ReadonlyArray<string> }) {
+  return (
+    <section className="border-t pt-6" aria-labelledby="entry-summary">
+      <h2 id="entry-summary" className="text-muted-foreground mb-2 text-xs font-medium">
+        Summary
+      </h2>
+      <ul className="list-disc space-y-1 pl-5">
+        {summary.map((bullet, index) => (
+          <li key={index}>{bullet}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// Writes the entry's title and summary now instead of waiting for the server
+// to notice it's idle. Refetching the entry shows the summary; the editor
+// keeps its live document.
 function DoneButton({ date }: { date: string }) {
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const done = useMutation({
-    ...journalTitleMutation(apiClientOptions),
-    onSuccess: () => queryClient.invalidateQueries(journalEntriesQueryOptions),
+    ...journalSummariseMutation(apiClientOptions),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries(journalEntriesQueryOptions),
+        queryClient.invalidateQueries(journalEntryQueryOptions(date)),
+      ]),
   });
 
   return (
     <div className="flex items-center gap-3">
       {done.isError && (
         <span className="text-destructive text-sm">
-          {done.error.message ?? "Couldn't write a title"}
+          {done.error.message ?? "Couldn't summarise this entry"}
         </span>
       )}
       <Button

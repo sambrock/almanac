@@ -6,8 +6,9 @@ import { client } from "../client.gen";
 import {
   healthCheck,
   journalGet,
+  journalGoDeeper,
   journalList,
-  journalTitle,
+  journalSummarise,
   type Options,
   usersMe,
 } from "../sdk.gen";
@@ -17,12 +18,15 @@ import type {
   JournalGetData,
   JournalGetError,
   JournalGetResponse,
+  JournalGoDeeperData,
+  JournalGoDeeperError,
+  JournalGoDeeperResponse,
   JournalListData,
   JournalListError,
   JournalListResponse,
-  JournalTitleData,
-  JournalTitleError,
-  JournalTitleResponse,
+  JournalSummariseData,
+  JournalSummariseError,
+  JournalSummariseResponse,
   UsersMeData,
   UsersMeError,
   UsersMeResponse,
@@ -150,16 +154,44 @@ export const journalGetOptions = (options: Options<JournalGetData>) =>
     queryKey: journalGetQueryKey(options),
   });
 
-export const journalTitleMutation = (
-  options?: Partial<Options<JournalTitleData>>,
-): UseMutationOptions<JournalTitleResponse, JournalTitleError, Options<JournalTitleData>> => {
+export const journalSummariseMutation = (
+  options?: Partial<Options<JournalSummariseData>>,
+): UseMutationOptions<
+  JournalSummariseResponse,
+  JournalSummariseError,
+  Options<JournalSummariseData>
+> => {
   const mutationOptions: UseMutationOptions<
-    JournalTitleResponse,
-    JournalTitleError,
-    Options<JournalTitleData>
+    JournalSummariseResponse,
+    JournalSummariseError,
+    Options<JournalSummariseData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await journalTitle({
+      const { data } = await journalSummarise({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const journalGoDeeperMutation = (
+  options?: Partial<Options<JournalGoDeeperData>>,
+): UseMutationOptions<
+  JournalGoDeeperResponse,
+  JournalGoDeeperError,
+  Options<JournalGoDeeperData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    JournalGoDeeperResponse,
+    JournalGoDeeperError,
+    Options<JournalGoDeeperData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await journalGoDeeper({
         ...options,
         ...fnOptions,
         throwOnError: true,

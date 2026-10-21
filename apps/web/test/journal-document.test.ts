@@ -10,6 +10,7 @@ test("a prefetched document contains saved text before live sync and merges conc
   const snapshot = {
     body: server.getText("body").toString(),
     doc: Buffer.from(Y.encodeStateAsUpdate(server)).toString("base64"),
+    summary: null,
   };
   const client = createJournalDocument(snapshot);
   try {
