@@ -1,7 +1,7 @@
 import {
   journalGetOptions,
   journalGoDeeperMutation,
-  journalTitleMutation,
+  journalSummariseMutation,
 } from "@almanac/api-client/tanstack-query";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
@@ -123,24 +123,51 @@ function Entry({ date }: { date: string }) {
         </div>
       </div>
       <JournalEditor date={date} initialSnapshot={data} />
+      {data?.summary && data.summary.length > 0 && data.body.length > SHORT_ENTRY && (
+        <EntrySummary summary={data.summary} />
+      )}
     </>
   );
 }
 
-// Titles the entry now instead of waiting for the server to notice it's idle.
+// An entry this short is already a summary of itself.
+const SHORT_ENTRY = 280;
+
+function EntrySummary({ summary }: { summary: ReadonlyArray<string> }) {
+  return (
+    <section className="border-t pt-6" aria-labelledby="entry-summary">
+      <h2 id="entry-summary" className="text-muted-foreground mb-2 text-xs font-medium">
+        Summary
+      </h2>
+      <ul className="list-disc space-y-1 pl-5">
+        {summary.map((bullet, index) => (
+          <li key={index}>{bullet}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// Writes the entry's title and summary now instead of waiting for the server
+// to notice it's idle. Refetching the entry shows the summary; the editor
+// keeps its live document.
 function DoneButton({ date }: { date: string }) {
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const done = useMutation({
-    ...journalTitleMutation(apiClientOptions),
-    onSuccess: () => queryClient.invalidateQueries(journalEntriesQueryOptions),
+    ...journalSummariseMutation(apiClientOptions),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries(journalEntriesQueryOptions),
+        queryClient.invalidateQueries(journalEntryQueryOptions(date)),
+      ]),
   });
 
   return (
     <div className="flex items-center gap-3">
       {done.isError && (
         <span className="text-destructive text-sm">
-          {done.error.message ?? "Couldn't write a title"}
+          {done.error.message ?? "Couldn't summarise this entry"}
         </span>
       )}
       <Button

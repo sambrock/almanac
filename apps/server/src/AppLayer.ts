@@ -11,7 +11,7 @@ import { AuthorizationLive } from "./features/auth/AuthorizationLive.ts";
 import { AuthRoutes, BetterAuth } from "./features/auth/BetterAuth.ts";
 import { HealthHandlers } from "./features/health/HealthHandlers.ts";
 import { JournalEntries } from "./features/journal/JournalEntries.ts";
-import { JournalEntryTitlesLive } from "./features/journal/JournalEntryTitles.ts";
+import { JournalEntrySummariesLive } from "./features/journal/JournalEntrySummaries.ts";
 import { JournalHandlers } from "./features/journal/JournalHandlers.ts";
 import { JournalRelay } from "./features/journal/JournalRelay.ts";
 import { JournalSyncRoutes } from "./features/journal/JournalSync.ts";
@@ -36,10 +36,11 @@ const ApiLive = HttpApiBuilder.layer(Api, { openapiPath: "/openapi.json" }).pipe
   Layer.provide(AuthorizationLive),
 );
 
-// Titles are short and easy, so the smallest model at low effort is enough.
+// Entry summaries use this model. Later follow-ups read them to recall past
+// entries, so they get Sonnet rather than Haiku.
 const LanguageModelLive = AnthropicLanguageModel.layer({
-  model: "claude-haiku-5-5",
-  config: { max_tokens: 2048, output_config: { effort: "low" } },
+  model: "claude-sonnet-5-5",
+  config: { max_tokens: 8000, output_config: { effort: "medium" } },
 }).pipe(
   Layer.provide(AnthropicClient.layerConfig({ apiKey: Config.Redacted("ANTHROPIC_API_KEY") })),
   Layer.provide(FetchHttpClient.layer),
@@ -58,7 +59,7 @@ const CorsLive = Layer.unwrap(
 // server starts listening.
 export const AppLayer = Layer.mergeAll(
   HttpRouter.serve(Layer.mergeAll(ApiLive, AuthRoutes, JournalSyncRoutes, DocsLive, CorsLive)),
-  JournalEntryTitlesLive,
+  JournalEntrySummariesLive,
 ).pipe(
   Layer.provide([JournalEntries.layer, JournalRelay.layer]),
   Layer.provide(LanguageModelLive),

@@ -6,17 +6,28 @@ import test from "node:test";
 import * as Y from "yjs";
 
 import { makePublicId, UserId } from "../src/domain/ids.ts";
-import { BODY, FOLLOW_UPS, JournalEntries } from "../src/features/journal/JournalEntries.ts";
+import {
+  BODY,
+  FOLLOW_UPS,
+  JournalEntries,
+  readFollowUps,
+} from "../src/features/journal/JournalEntries.ts";
 import { JournalDate } from "../src/features/journal/JournalEntry.ts";
 import { goDeeper } from "../src/features/journal/JournalEntryReflections.ts";
 import { JournalRelay } from "../src/features/journal/JournalRelay.ts";
 import { skipWithoutDatabase, withTestSchema } from "./test-database.ts";
 
-test("going deeper adds follow-ups between the user's writing", { skip: skipWithoutDatabase }, () =>
+type ToolCall = { name: string; params: unknown };
+
+test("going deeper adds follow-ups that the user answers", { skip: skipWithoutDatabase }, () =>
   withTestSchema("test_reflections", async ({ database }) => {
-    // Answers with the next queued follow-up, or fails when the queue is empty.
+    // Each request answers with the next queued step: the tool calls the
+    // model makes, or an empty list for a text reply. Fails when the queue
+    // is empty.
     const prompts: Array<ReadonlyArray<{ role: string; text: string }>> = [];
-    const followUps: Array<{ response: string; question: string }> = [];
+    const steps: Array<ReadonlyArray<ToolCall>> = [];
+    const writeFollowUp = (response: string, question: string, references: Array<string> = []) =>
+      steps.push([{ name: "write_follow_up", params: { response, question, references } }]);
     const model = Layer.effect(
       LanguageModel.LanguageModel,
       LanguageModel.make({
@@ -27,16 +38,25 @@ test("going deeper adds follow-ups between the user's writing", { skip: skipWith
               text: JSON.stringify(message.content),
             })),
           );
-          const followUp = followUps.shift();
-          return followUp === undefined
-            ? Effect.fail(
-                AiError.make({
-                  module: "Test",
-                  method: "generateText",
-                  reason: new AiError.UnknownError({ description: "No follow-up queued" }),
-                }),
-              )
-            : Effect.succeed([{ type: "text", text: JSON.stringify(followUp) }]);
+          const step = steps.shift();
+          if (step === undefined) {
+            return Effect.fail(
+              AiError.make({
+                module: "Test",
+                method: "generateText",
+                reason: new AiError.UnknownError({ description: "No step queued" }),
+              }),
+            );
+          }
+          return Effect.succeed(
+            step.length === 0
+              ? [{ type: "text", text: "Here's a thought." }]
+              : step.map((call, index) => ({
+                  type: "tool-call",
+                  id: `call-${prompts.length}-${index}`,
+                  ...call,
+                })),
+          );
         },
         streamText: () => {
           throw new Error("Not used");
@@ -59,47 +79,47 @@ test("going deeper adds follow-ups between the user's writing", { skip: skipWith
           `;
         const userId = UserId.make(id);
         const date = JournalDate.make("2026-10-19");
-        const write = (index: number | "end", text: string) =>
+        const writeBody = (date: JournalDate, text: string) =>
+          entries.withDoc(userId, date, (doc) => doc.getText(BODY).insert(0, text));
+        const writeAnswer = (text: string) =>
           entries.withDoc(userId, date, (doc) => {
-            const body = doc.getText(BODY);
-            body.insert(index === "end" ? body.length : index, text);
+            const followUps = doc.getArray<Y.Map<string | Y.Text>>(FOLLOW_UPS);
+            const answer = followUps.get(followUps.length - 1).get("answer");
+            assert.ok(answer instanceof Y.Text);
+            answer.insert(answer.length, text);
           });
-        // The body, and where in it each follow-up shows.
         const read = Effect.map(
-          entries.withDoc(userId, date, (doc) => ({
-            body: doc.getText(BODY).toString(),
-            anchors: doc
-              .getArray<{ after: unknown }>(FOLLOW_UPS)
-              .map(
-                ({ after }) =>
-                  Y.createAbsolutePositionFromRelativePosition(
-                    Y.createRelativePositionFromJSON(after),
-                    doc,
-                  )?.index,
-              ),
-          })),
+          entries.withDoc(userId, date, readFollowUps),
           ({ result }) => result,
         );
 
         const empty = yield* Effect.flip(goDeeper(userId, date));
         assert.equal(empty.message, "Write something first");
 
-        yield* write(0, "The review with Jo went badly.");
-        followUps.push({
-          response: "That sounds deflating.",
-          question: "What did you want Jo to see?",
-        });
+        yield* writeBody(date, "The review with Jo went badly.");
+        writeFollowUp("That sounds deflating.", "What did you want Jo to see?");
         yield* goDeeper(userId, date);
-        assert.deepEqual(yield* read, { body: "The review with Jo went badly.\n", anchors: [31] });
+        assert.deepEqual(yield* read, [
+          {
+            response: "That sounds deflating.",
+            question: "What did you want Jo to see?",
+            answer: "",
+            references: [],
+          },
+        ]);
+        assert.deepEqual(
+          prompts[0].map((message) => message.role),
+          ["system", "user"],
+          "with no earlier entries, the model gets just the instructions",
+        );
         assert.match(prompts[0][1].text, /review with Jo/);
 
         const unanswered = yield* Effect.flip(goDeeper(userId, date));
         assert.equal(unanswered.message, "Answer the question first");
 
-        // The answer is ordinary entry text, written below the follow-up.
         const subscription = yield* PubSub.subscribe(relay);
-        yield* write("end", "How much work went into it.");
-        followUps.push({ response: "Effort counts.", question: "Who else noticed it?" });
+        yield* writeAnswer("How much work went into it.");
+        writeFollowUp("Effort counts.", "Who else noticed it?");
         yield* goDeeper(userId, date);
         assert.deepEqual(
           prompts[1].map((message) => message.role),
@@ -107,16 +127,69 @@ test("going deeper adds follow-ups between the user's writing", { skip: skipWith
         );
         assert.match(prompts[1][2].text, /What did you want Jo to see\?/);
         assert.match(prompts[1][3].text, /How much work went into it/);
-        assert.deepEqual(yield* read, {
-          body: "The review with Jo went badly.\nHow much work went into it.\n",
-          anchors: [31, 59],
-        });
+        assert.deepEqual(
+          (yield* read).map(({ answer }) => answer),
+          ["How much work went into it.", ""],
+        );
         const relayed = yield* PubSub.take(subscription);
         assert.equal(relayed.room, `${userId}/${date}`, "open editors get the new follow-up");
 
-        // Follow-ups stay with the text they follow when earlier text changes.
-        yield* write(0, "Today. ");
-        assert.deepEqual((yield* read).anchors, [38, 66]);
+        // Answers count as the entry's text, for previews and summaries.
+        const [summary] = yield* entries.list(userId);
+        assert.equal(
+          summary.preview,
+          "The review with Jo went badly.\n\nHow much work went into it.",
+        );
+
+        // An earlier entry with a summary, and a later one the model
+        // shouldn't know about.
+        const earlier = JournalDate.make("2026-09-02");
+        const later = JournalDate.make("2026-10-25");
+        yield* writeBody(earlier, "Jo said my last review was the best on the team.");
+        yield* writeBody(later, "Jo left the company.");
+        yield* sql`
+          update "journal_entry" set "title" = 'Praise from Jo', "summary" = ${["Jo praised your review"]}
+          where "date" = ${earlier}
+        `;
+        yield* sql`
+          update "journal_entry" set "summary" = ${["Jo left"]} where "date" = ${later}
+        `;
+
+        yield* writeAnswer("Nobody, really.");
+        steps.push([
+          { name: "read_entry", params: { date: earlier } },
+          { name: "read_entry", params: { date: later } },
+        ]);
+        writeFollowUp("In September Jo called your review the best.", "What changed?", [
+          earlier,
+          later,
+          earlier,
+          "2026-01-01",
+        ]);
+        yield* goDeeper(userId, date);
+        const [instructions, pastEntries] = prompts[2];
+        assert.equal(instructions.role, "system");
+        assert.equal(pastEntries.role, "system");
+        assert.match(pastEntries.text, /2026-09-02 · Praise from Jo\\n- Jo praised your review/);
+        assert.doesNotMatch(pastEntries.text, /Jo left/, "later entries stay hidden");
+        const toolResults = prompts[3].at(-1)!;
+        assert.equal(toolResults.role, "tool");
+        assert.match(toolResults.text, /best on the team/);
+        assert.match(toolResults.text, /There's no entry for 2026-10-25 before today/);
+        assert.deepEqual(
+          (yield* read).at(-1)!.references,
+          [earlier],
+          "references only name earlier entries the model was shown",
+        );
+
+        // A model that replies with text instead of writing a follow-up fails,
+        // after two retries.
+        yield* writeAnswer("Me, I suppose.");
+        steps.push([], [], []);
+        const failure = yield* Effect.flip(goDeeper(userId, date));
+        assert.equal(failure._tag, "AiError");
+        assert.equal(steps.length, 0);
+        assert.equal((yield* read).length, 3);
       }).pipe(Effect.provide(services), Effect.scoped),
     );
   }),

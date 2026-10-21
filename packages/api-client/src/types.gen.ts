@@ -19,17 +19,18 @@ export type CantGoDeeperEncoded = {
   message: string;
 };
 
-export type EntryTitleFailedEncoded = {
-  _tag: "EntryTitleFailed";
+export type EntrySummaryFailedEncoded = {
+  _tag: "EntrySummaryFailed";
   message: string;
 };
 
 export type JournalEntrySnapshotEncoded = {
   doc: string;
   body: string;
+  summary: Array<string> | null;
 };
 
-export type JournalEntrySummaryEncoded = {
+export type JournalEntryListItemEncoded = {
   id: string;
   date: string;
   title: string | null;
@@ -106,7 +107,7 @@ export type JournalListResponses = {
   /**
    * Success
    */
-  200: Array<JournalEntrySummaryEncoded>;
+  200: Array<JournalEntryListItemEncoded>;
 };
 
 export type JournalListResponse = JournalListResponses[keyof JournalListResponses];
@@ -138,36 +139,36 @@ export type JournalGetResponses = {
 
 export type JournalGetResponse = JournalGetResponses[keyof JournalGetResponses];
 
-export type JournalTitleData = {
+export type JournalSummariseData = {
   body?: never;
   path: {
     date: string;
   };
   query?: never;
-  url: "/journal/entries/{date}/title";
+  url: "/journal/entries/{date}/summary";
 };
 
-export type JournalTitleErrors = {
+export type JournalSummariseErrors = {
   /**
    * Unauthorized
    */
   401: UnauthorizedEncoded;
   /**
-   * EntryTitleFailed
+   * EntrySummaryFailed
    */
-  502: EntryTitleFailedEncoded;
+  502: EntrySummaryFailedEncoded;
 };
 
-export type JournalTitleError = JournalTitleErrors[keyof JournalTitleErrors];
+export type JournalSummariseError = JournalSummariseErrors[keyof JournalSummariseErrors];
 
-export type JournalTitleResponses = {
+export type JournalSummariseResponses = {
   /**
    * <No Content>
    */
   204: void;
 };
 
-export type JournalTitleResponse = JournalTitleResponses[keyof JournalTitleResponses];
+export type JournalSummariseResponse = JournalSummariseResponses[keyof JournalSummariseResponses];
 
 export type JournalGoDeeperData = {
   body?: never;

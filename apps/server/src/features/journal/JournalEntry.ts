@@ -20,7 +20,9 @@ export const JournalDate = Schema.String.check(
 ).pipe(Schema.brand("JournalDate"));
 export type JournalDate = typeof JournalDate.Type;
 
-export class JournalEntrySummary extends Schema.Class<JournalEntrySummary>("JournalEntrySummary")({
+export class JournalEntryListItem extends Schema.Class<JournalEntryListItem>(
+  "JournalEntryListItem",
+)({
   id: JournalEntryPublicId,
   date: JournalDate,
   // Written by a model when the user presses Done, or once the entry has gone
@@ -34,4 +36,7 @@ export class JournalEntrySnapshot extends Schema.Class<JournalEntrySnapshot>(
 )({
   doc: Schema.Uint8ArrayFromBase64,
   body: Schema.String,
+  // The entry summary's bullet points, or null if the entry has changed since
+  // they were written.
+  summary: Schema.NullOr(Schema.Array(Schema.String)),
 }) {}

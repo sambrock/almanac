@@ -4,10 +4,12 @@ import * as Y from "yjs";
 // The entry body lives in this Y.Text. Every client must use the same name.
 export const BODY = "body";
 
-// Follow-ups live in this Y.Array, apart from the body. Each one shows just
-// after the body character that `after` points to. Only the server adds them.
+// Follow-ups live in this Y.Array, after the body. Each is a Y.Map holding
+// the AI's `response` and `question` as strings, the user's `answer` as a
+// Y.Text, and `references`, the journal dates of earlier entries the
+// follow-up mentions. Only the server adds them. Everything before the last
+// answer is locked.
 export const FOLLOW_UPS = "followUps";
-export type FollowUp = { response: string; question: string; after: unknown };
 
 export function createJournalDocument(snapshot: JournalGetResponse) {
   const doc = new Y.Doc();

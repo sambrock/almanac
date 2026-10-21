@@ -3,26 +3,61 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import * as Y from "yjs";
 
 import { makePublicId, UserId } from "../../domain/ids.ts";
-import { JournalDate, JournalEntrySnapshot, JournalEntrySummary } from "./JournalEntry.ts";
+import { JournalDate, JournalEntrySnapshot, JournalEntryListItem } from "./JournalEntry.ts";
 
 // The entry body lives in this Y.Text. Every client must use the same name.
 export const BODY = "body";
 
-// Follow-ups live in this Y.Array, apart from the body, so the body only ever
-// holds what the user wrote. Each one shows just after the body character
-// that `after` points to, a relative position from `Y.relativePositionToJSON`.
-// Only the server adds follow-ups.
+// Follow-ups live in this Y.Array, after the body. Each is a Y.Map holding
+// the AI's `response` and `question` as strings, the user's `answer` as a
+// Y.Text, and `references`, an array of the journal dates of earlier entries
+// the follow-up mentions. Only the server adds follow-ups. Once there is one,
+// clients treat everything before the last answer as locked.
 export const FOLLOW_UPS = "followUps";
-export const FollowUp = Schema.Struct({
-  response: Schema.String,
-  question: Schema.String,
-  after: Schema.Unknown,
-});
+
+export const readFollowUps = (doc: Y.Doc) =>
+  doc.getArray<Y.Map<string | Y.Text | Array<string>>>(FOLLOW_UPS).map((followUp) => {
+    const [response, question, answer] = ["response", "question", "answer"].map(
+      (key) => followUp.get(key)?.toString() ?? "",
+    );
+    // The journal dates of earlier entries the follow-up mentions. Older
+    // follow-ups don't have it.
+    const references = followUp.get("references");
+    return { response, question, answer, references: Array.isArray(references) ? references : [] };
+  });
+
+export const readDoc = (state: Uint8Array) => {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, state);
+  return doc;
+};
+
+// The entry for a model to read: the body, then each follow-up in
+// <follow_up> tags followed by the user's answer.
+export const entryTranscript = (doc: Y.Doc) =>
+  [
+    doc.getText(BODY).toString(),
+    ...readFollowUps(doc).flatMap(({ response, question, answer }) => [
+      `<follow_up>${response}\n${question}</follow_up>`,
+      answer,
+    ]),
+  ]
+    .filter((text) => text.trim())
+    .join("\n\n");
+
+// Everything the user wrote: the body, then each answer.
+const entryText = (doc: Y.Doc) =>
+  [
+    doc.getText(BODY).toString(),
+    ...readFollowUps(doc)
+      .map(({ answer }) => answer)
+      .filter((answer) => answer.trim()),
+  ].join("\n\n");
 
 export class JournalEntries extends Context.Service<
   JournalEntries,
   {
-    list(userId: UserId): Effect.Effect<ReadonlyArray<JournalEntrySummary>>;
+    list(userId: UserId): Effect.Effect<ReadonlyArray<JournalEntryListItem>>;
     get(userId: UserId, date: JournalDate): Effect.Effect<Option.Option<JournalEntrySnapshot>>;
     // Runs `f` against the entry's document while holding a lock on the entry,
     // then saves the document if `f` changed it. Returns what `f` returned
@@ -41,7 +76,7 @@ export class JournalEntries extends Context.Service<
 
       const findSummaries = SqlSchema.findAll({
         Request: UserId,
-        Result: JournalEntrySummary,
+        Result: JournalEntryListItem,
         execute: (userId) => sql`
           select "public_id" as "id", "date"::text as "date", "title", left("text", 280) as "preview"
           from "journal_entry"
@@ -50,11 +85,26 @@ export class JournalEntries extends Context.Service<
         `,
       });
 
+      const findSnapshot = SqlSchema.findOneOption({
+        Request: Schema.Struct({ userId: UserId, date: JournalDate }),
+        Result: Schema.Struct({
+          doc: Schema.Uint8Array,
+          body: Schema.String,
+          summary: Schema.NullOr(Schema.Array(Schema.String)),
+        }),
+        execute: ({ userId, date }) => sql`
+          select "doc", "text" as "body",
+            case when "summarised_text_md5" = md5("text") then "summary" end as "summary"
+          from "journal_entry"
+          where "user_id" = ${userId} and "date" = ${date}
+        `,
+      });
+
       const findDoc = SqlSchema.findOneOption({
         Request: Schema.Struct({ userId: UserId, date: JournalDate }),
-        Result: Schema.Struct({ doc: Schema.Uint8Array, body: Schema.String }),
+        Result: Schema.Struct({ doc: Schema.Uint8Array }),
         execute: ({ userId, date }) => sql`
-          select "doc", "text" as "body" from "journal_entry"
+          select "doc" from "journal_entry"
           where "user_id" = ${userId} and "date" = ${date}
         `,
       });
@@ -64,7 +114,7 @@ export class JournalEntries extends Context.Service<
       );
 
       const get = Effect.fn("JournalEntries.get")((userId: UserId, date: JournalDate) =>
-        findDoc({ userId, date }).pipe(
+        findSnapshot({ userId, date }).pipe(
           Effect.map(Option.map((stored) => new JournalEntrySnapshot(stored))),
           Effect.orDie,
         ),
@@ -76,9 +126,8 @@ export class JournalEntries extends Context.Service<
           // server instances, so concurrent updates can't overwrite each other.
           yield* sql`select pg_advisory_xact_lock(hashtextextended(${`${userId}/${date}`}, 0))`;
 
-          const doc = new Y.Doc();
           const stored = yield* findDoc({ userId, date });
-          if (Option.isSome(stored)) Y.applyUpdate(doc, stored.value.doc);
+          const doc = Option.isSome(stored) ? readDoc(stored.value.doc) : new Y.Doc();
 
           const updates: Array<Uint8Array> = [];
           doc.on("update", (update: Uint8Array) => updates.push(update));
@@ -87,7 +136,7 @@ export class JournalEntries extends Context.Service<
           if (updates.length === 0) return { result, update: Option.none() };
 
           const state = Y.encodeStateAsUpdate(doc);
-          const text = doc.getText(BODY).toString();
+          const text = entryText(doc);
           yield* sql`
             insert into "journal_entry" ("public_id", "user_id", "date", "doc", "text")
             values (${makePublicId()}, ${userId}, ${date}, ${state}, ${text})

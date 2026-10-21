@@ -14,9 +14,9 @@ import type {
   JournalListData,
   JournalListErrors,
   JournalListResponses,
-  JournalTitleData,
-  JournalTitleErrors,
-  JournalTitleResponses,
+  JournalSummariseData,
+  JournalSummariseErrors,
+  JournalSummariseResponses,
   UsersMeData,
   UsersMeErrors,
   UsersMeResponses,
@@ -72,11 +72,11 @@ export const journalGet = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
-export const journalTitle = <ThrowOnError extends boolean = false>(
-  options: Options<JournalTitleData, ThrowOnError>,
-): RequestResult<JournalTitleResponses, JournalTitleErrors, ThrowOnError> =>
-  (options.client ?? client).post<JournalTitleResponses, JournalTitleErrors, ThrowOnError>({
-    url: "/journal/entries/{date}/title",
+export const journalSummarise = <ThrowOnError extends boolean = false>(
+  options: Options<JournalSummariseData, ThrowOnError>,
+): RequestResult<JournalSummariseResponses, JournalSummariseErrors, ThrowOnError> =>
+  (options.client ?? client).post<JournalSummariseResponses, JournalSummariseErrors, ThrowOnError>({
+    url: "/journal/entries/{date}/summary",
     ...options,
   });
 
